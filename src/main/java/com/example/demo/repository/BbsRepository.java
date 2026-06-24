@@ -1,3 +1,4 @@
+/*
 package com.example.demo.repository;
 
 import com.example.demo.model.Post;
@@ -94,4 +95,9 @@ public class BbsRepository {
     private String key(String username) {
         return username == null ? "" : username.trim().toLowerCase(Locale.ROOT);
     }
+}
+*/
+package com.example.demo.repository;
+
+public class BbsRepository extends JdbcBbsRepository {
 }

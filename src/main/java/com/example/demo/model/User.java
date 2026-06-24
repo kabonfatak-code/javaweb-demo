@@ -1,27 +1,53 @@
 package com.example.demo.model;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 public class User implements Serializable {
+    public static final String ROLE_NEW = "NEW_USER";
+    public static final String ROLE_OLD = "OLD_USER";
+    public static final String ROLE_ADMIN = "ADMIN";
+
+    private long id;
     private String username;
     private String passwordHash;
-    private String realName;
-    private String email;
-    private String gender;
     private String phone;
-    private boolean admin;
+    private String province;
+    private String role;
+    private boolean banned;
+    private LocalDateTime bannedUntil;
+    private boolean historyEnabled;
+    private LocalDateTime createdAt;
+    private LocalDateTime registerTime;
 
     public User() {
     }
 
-    public User(String username, String passwordHash, String realName, String email, String gender, String phone, boolean admin) {
+    public User(long id, String username, String passwordHash, String phone, String role, boolean banned, boolean historyEnabled, LocalDateTime createdAt) {
+        this(id, username, passwordHash, phone, "", role, banned, null, historyEnabled, createdAt, createdAt);
+    }
+
+    public User(long id, String username, String passwordHash, String phone, String province, String role, boolean banned,
+                LocalDateTime bannedUntil, boolean historyEnabled, LocalDateTime createdAt, LocalDateTime registerTime) {
+        this.id = id;
         this.username = username;
         this.passwordHash = passwordHash;
-        this.realName = realName;
-        this.email = email;
-        this.gender = gender;
         this.phone = phone;
-        this.admin = admin;
+        this.province = province;
+        this.role = role;
+        this.banned = banned;
+        this.bannedUntil = bannedUntil;
+        this.historyEnabled = historyEnabled;
+        this.createdAt = createdAt;
+        this.registerTime = registerTime;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 
     public String getUsername() {
@@ -40,30 +66,6 @@ public class User implements Serializable {
         this.passwordHash = passwordHash;
     }
 
-    public String getRealName() {
-        return realName;
-    }
-
-    public void setRealName(String realName) {
-        this.realName = realName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getGender() {
-        return gender;
-    }
-
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
-
     public String getPhone() {
         return phone;
     }
@@ -72,11 +74,78 @@ public class User implements Serializable {
         this.phone = phone;
     }
 
-    public boolean isAdmin() {
-        return admin;
+    public String getProvince() {
+        return province;
     }
 
-    public void setAdmin(boolean admin) {
-        this.admin = admin;
+    public void setProvince(String province) {
+        this.province = province;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public boolean isAdmin() {
+        return ROLE_ADMIN.equals(role);
+    }
+
+    public boolean isOldUser() {
+        LocalDateTime baseTime = registerTime == null ? createdAt : registerTime;
+        return !isAdmin() && baseTime != null && !baseTime.isAfter(LocalDateTime.now().minusMonths(6));
+    }
+
+    public boolean isBanned() {
+        return banned && (bannedUntil == null || bannedUntil.isAfter(LocalDateTime.now()));
+    }
+
+    public void setBanned(boolean banned) {
+        this.banned = banned;
+    }
+
+    public LocalDateTime getBannedUntil() {
+        return bannedUntil;
+    }
+
+    public void setBannedUntil(LocalDateTime bannedUntil) {
+        this.bannedUntil = bannedUntil;
+    }
+
+    public boolean isHistoryEnabled() {
+        return historyEnabled;
+    }
+
+    public void setHistoryEnabled(boolean historyEnabled) {
+        this.historyEnabled = historyEnabled;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getRegisterTime() {
+        return registerTime == null ? createdAt : registerTime;
+    }
+
+    public void setRegisterTime(LocalDateTime registerTime) {
+        this.registerTime = registerTime;
+    }
+
+    public String getRoleLabel() {
+        if (ROLE_ADMIN.equals(role)) {
+            return "系统管理员";
+        }
+        if (isOldUser()) {
+            return "老东西";
+        }
+        return "新用户";
     }
 }

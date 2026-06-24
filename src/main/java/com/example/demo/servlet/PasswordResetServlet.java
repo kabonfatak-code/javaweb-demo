@@ -13,31 +13,27 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-@WebServlet("/register")
-public class RegisterServlet extends HttpServlet {
+@WebServlet("/password/reset")
+public class PasswordResetServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        request.getRequestDispatcher("/WEB-INF/views/register-v2.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/reset-password.jsp").forward(request, response);
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String username = TextUtils.trim(request.getParameter("username"));
-        String password = TextUtils.trim(request.getParameter("password"));
         String phone = TextUtils.trim(request.getParameter("phone"));
         String smsCode = TextUtils.trim(request.getParameter("smsCode"));
+        String password = TextUtils.trim(request.getParameter("password"));
 
-        request.setAttribute("username", username);
         request.setAttribute("phone", phone);
-
-        BbsRepository repository = WebUtil.getRepository(getServletContext());
         try {
-            repository.register(username, password, phone, smsCode);
-            WebUtil.setFlash(request, "注册成功，请登录");
+            WebUtil.getRepository(getServletContext()).resetPassword(phone, smsCode, password);
+            WebUtil.setFlash(request, "密码已重置，请登录");
             response.sendRedirect(request.getContextPath() + "/login");
         } catch (IllegalArgumentException | SQLException e) {
             request.setAttribute("error", e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/register-v2.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/reset-password.jsp").forward(request, response);
         }
     }
 }

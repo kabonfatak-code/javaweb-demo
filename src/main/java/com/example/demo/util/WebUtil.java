@@ -34,6 +34,31 @@ public final class WebUtil {
         return (User) session.getAttribute(LOGIN_USER_KEY);
     }
 
+    public static boolean isLoggedIn(HttpServletRequest request) {
+        return getLoginUser(request) != null;
+    }
+
+    public static boolean isAdmin(HttpServletRequest request) {
+        User user = getLoginUser(request);
+        return user != null && user.isAdmin();
+    }
+
+    public static long parseLong(String text, long defaultValue) {
+        try {
+            return Long.parseLong(text);
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    public static int parseInt(String text, int defaultValue) {
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
     public static void setFlash(HttpServletRequest request, String message) {
         request.getSession().setAttribute(FLASH_KEY, message);
     }

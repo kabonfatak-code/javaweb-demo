@@ -5,6 +5,7 @@ import com.example.demo.repository.BbsRepository;
 import com.example.demo.util.WebUtil;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -23,23 +24,15 @@ public class DeletePostServlet extends HttpServlet {
             return;
         }
 
-        if (!loginUser.isAdmin()) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN);
-            return;
-        }
-
-        long id = parseId(request.getParameter("id"));
-        BbsRepository repository = WebUtil.getRepository(getServletContext());
-        boolean deleted = repository.deletePost(id);
-        WebUtil.setFlash(request, deleted ? "留言已删除" : "留言不存在");
-        response.sendRedirect(request.getContextPath() + "/posts");
-    }
-
-    private long parseId(String idText) {
         try {
-            return Long.parseLong(idText);
-        } catch (NumberFormatException e) {
-            return -1L;
+            long id = WebUtil.parseLong(request.getParameter("id"), -1L);
+            BbsRepository repository = WebUtil.getRepository(getServletContext());
+            repository.deletePost(id, loginUser);
+            WebUtil.setFlash(request, "帖子已删除");
+            response.sendRedirect(request.getContextPath() + "/posts");
+        } catch (IllegalArgumentException | SQLException e) {
+            WebUtil.setFlash(request, e.getMessage());
+            response.sendRedirect(request.getContextPath() + "/posts");
         }
     }
 }

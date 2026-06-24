@@ -7,6 +7,7 @@ import com.example.demo.util.TextUtils;
 import com.example.demo.util.WebUtil;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -21,12 +22,11 @@ public class NewPostServlet extends HttpServlet {
         if (!ensureLogin(request, response)) {
             return;
         }
-        request.getRequestDispatcher("/WEB-INF/views/new-post.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/new-post-v2.jsp").forward(request, response);
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        request.setCharacterEncoding("UTF-8");
         User loginUser = WebUtil.getLoginUser(request);
         if (loginUser == null) {
             WebUtil.setFlash(request, "请先登录");
@@ -34,22 +34,23 @@ public class NewPostServlet extends HttpServlet {
             return;
         }
 
-        String title = TextUtils.trim(request.getParameter("title"));
+        String topic = TextUtils.trim(request.getParameter("topic"));
+        String region = TextUtils.trim(request.getParameter("region"));
         String content = TextUtils.trim(request.getParameter("content"));
-        request.setAttribute("title", title);
+        String title = deriveTitle(content);
+        request.setAttribute("topic", topic);
+        request.setAttribute("region", region);
         request.setAttribute("content", content);
 
-        String error = validate(title, content);
-        if (error != null) {
-            request.setAttribute("error", error);
-            request.getRequestDispatcher("/WEB-INF/views/new-post.jsp").forward(request, response);
-            return;
+        try {
+            BbsRepository repository = WebUtil.getRepository(getServletContext());
+            Post post = repository.addPost(title, topic, region, content, loginUser);
+            WebUtil.setFlash(request, "帖子发表成功");
+            response.sendRedirect(request.getContextPath() + "/post/detail?id=" + post.getId());
+        } catch (IllegalArgumentException | SQLException e) {
+            request.setAttribute("error", e.getMessage());
+            request.getRequestDispatcher("/WEB-INF/views/new-post-v2.jsp").forward(request, response);
         }
-
-        BbsRepository repository = WebUtil.getRepository(getServletContext());
-        Post post = repository.addPost(title, content, loginUser.getUsername());
-        WebUtil.setFlash(request, "留言发表成功");
-        response.sendRedirect(request.getContextPath() + "/post/detail?id=" + post.getId());
     }
 
     private boolean ensureLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -62,13 +63,11 @@ public class NewPostServlet extends HttpServlet {
         return false;
     }
 
-    private String validate(String title, String content) {
-        if (title.length() == 0 || title.length() > 100) {
-            return "留言主题需为 1-100 个字符";
+    private String deriveTitle(String content) {
+        String compact = TextUtils.trim(content).replaceAll("\\s+", " ");
+        if (compact.isEmpty()) {
+            return "未命名帖子";
         }
-        if (content.length() == 0 || content.length() > 4000) {
-            return "留言内容需为 1-4000 个字符";
-        }
-        return null;
+        return compact.length() > 60 ? compact.substring(0, 60) + "..." : compact;
     }
 }
