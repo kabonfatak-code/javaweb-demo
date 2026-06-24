@@ -1,133 +1,136 @@
-CREATE DATABASE IF NOT EXISTS BBS DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE BBS;
+create database if not exists bbs default character set utf8mb4 collate utf8mb4_unicode_ci;
+use bbs;
 
-CREATE TABLE IF NOT EXISTS users (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(30) NOT NULL UNIQUE,
-    password_hash CHAR(64) NOT NULL,
-    phone VARCHAR(20) NOT NULL UNIQUE,
-    role VARCHAR(20) NOT NULL DEFAULT 'NEW_USER',
-    banned TINYINT(1) NOT NULL DEFAULT 0,
-    history_enabled TINYINT(1) NOT NULL DEFAULT 1,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+create table if not exists users (
+    id bigint primary key auto_increment,
+    username varchar(30) not null unique,
+    password_hash char(64) not null,
+    phone varchar(20) not null unique,
+    province varchar(20) null,
+    role varchar(20) not null default 'NEW_USER',
+    banned tinyint(1) not null default 0,
+    banned_until timestamp null,
+    history_enabled tinyint(1) not null default 1,
+    created_at timestamp not null default current_timestamp,
+    register_time timestamp not null default current_timestamp
+) engine=innodb default charset=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS posts (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    title VARCHAR(120) NOT NULL,
-    topic VARCHAR(30) NOT NULL,
-    region VARCHAR(30) NOT NULL,
-    content TEXT NOT NULL,
-    author_id BIGINT NOT NULL,
-    pinned TINYINT(1) NOT NULL DEFAULT 0,
-    deleted TINYINT(1) NOT NULL DEFAULT 0,
-    like_score INT NOT NULL DEFAULT 0,
-    dislike_score INT NOT NULL DEFAULT 0,
-    favorite_count INT NOT NULL DEFAULT 0,
-    comment_count INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_posts_search(topic, region, created_at),
-    INDEX idx_posts_rank(pinned, like_score, favorite_count),
-    CONSTRAINT fk_posts_author FOREIGN KEY(author_id) REFERENCES users(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+create table if not exists posts (
+    id bigint primary key auto_increment,
+    title varchar(120) not null,
+    topic varchar(30) not null,
+    region varchar(30) not null,
+    content text not null,
+    author_id bigint not null,
+    pinned tinyint(1) not null default 0,
+    deleted tinyint(1) not null default 0,
+    like_score int not null default 0,
+    dislike_score int not null default 0,
+    favorite_count int not null default 0,
+    comment_count int not null default 0,
+    created_at timestamp not null default current_timestamp,
+    updated_at timestamp not null default current_timestamp on update current_timestamp,
+    index idx_posts_search(topic, region, created_at),
+    index idx_posts_rank(pinned, like_score, favorite_count),
+    constraint fk_posts_author foreign key(author_id) references users(id)
+) engine=innodb default charset=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS comments (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    post_id BIGINT NOT NULL,
-    author_id BIGINT NOT NULL,
-    content TEXT NOT NULL,
-    deleted TINYINT(1) NOT NULL DEFAULT 0,
-    like_score INT NOT NULL DEFAULT 0,
-    dislike_score INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_comments_post(post_id, created_at),
-    CONSTRAINT fk_comments_post FOREIGN KEY(post_id) REFERENCES posts(id),
-    CONSTRAINT fk_comments_author FOREIGN KEY(author_id) REFERENCES users(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+create table if not exists comments (
+    id bigint primary key auto_increment,
+    post_id bigint not null,
+    author_id bigint not null,
+    content text not null,
+    deleted tinyint(1) not null default 0,
+    like_score int not null default 0,
+    dislike_score int not null default 0,
+    created_at timestamp not null default current_timestamp,
+    updated_at timestamp not null default current_timestamp on update current_timestamp,
+    index idx_comments_post(post_id, created_at),
+    constraint fk_comments_post foreign key(post_id) references posts(id),
+    constraint fk_comments_author foreign key(author_id) references users(id)
+) engine=innodb default charset=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS post_votes (
-    user_id BIGINT NOT NULL,
-    post_id BIGINT NOT NULL,
-    value TINYINT NOT NULL,
-    weight INT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY(user_id, post_id),
-    CONSTRAINT fk_post_votes_user FOREIGN KEY(user_id) REFERENCES users(id),
-    CONSTRAINT fk_post_votes_post FOREIGN KEY(post_id) REFERENCES posts(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+create table if not exists post_votes (
+    user_id bigint not null,
+    post_id bigint not null,
+    value tinyint not null,
+    weight int not null,
+    created_at timestamp not null default current_timestamp,
+    primary key(user_id, post_id),
+    constraint fk_post_votes_user foreign key(user_id) references users(id),
+    constraint fk_post_votes_post foreign key(post_id) references posts(id)
+) engine=innodb default charset=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS comment_votes (
-    user_id BIGINT NOT NULL,
-    comment_id BIGINT NOT NULL,
-    value TINYINT NOT NULL,
-    weight INT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY(user_id, comment_id),
-    CONSTRAINT fk_comment_votes_user FOREIGN KEY(user_id) REFERENCES users(id),
-    CONSTRAINT fk_comment_votes_comment FOREIGN KEY(comment_id) REFERENCES comments(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+create table if not exists comment_votes (
+    user_id bigint not null,
+    comment_id bigint not null,
+    value tinyint not null,
+    weight int not null,
+    created_at timestamp not null default current_timestamp,
+    primary key(user_id, comment_id),
+    constraint fk_comment_votes_user foreign key(user_id) references users(id),
+    constraint fk_comment_votes_comment foreign key(comment_id) references comments(id)
+) engine=innodb default charset=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS favorites (
-    user_id BIGINT NOT NULL,
-    post_id BIGINT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY(user_id, post_id),
-    CONSTRAINT fk_favorites_user FOREIGN KEY(user_id) REFERENCES users(id),
-    CONSTRAINT fk_favorites_post FOREIGN KEY(post_id) REFERENCES posts(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+create table if not exists favorites (
+    user_id bigint not null,
+    post_id bigint not null,
+    created_at timestamp not null default current_timestamp,
+    primary key(user_id, post_id),
+    constraint fk_favorites_user foreign key(user_id) references users(id),
+    constraint fk_favorites_post foreign key(post_id) references posts(id)
+) engine=innodb default charset=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS browse_history (
-    user_id BIGINT NOT NULL,
-    post_id BIGINT NOT NULL,
-    viewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY(user_id, post_id),
-    CONSTRAINT fk_history_user FOREIGN KEY(user_id) REFERENCES users(id),
-    CONSTRAINT fk_history_post FOREIGN KEY(post_id) REFERENCES posts(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+create table if not exists browse_history (
+    user_id bigint not null,
+    post_id bigint not null,
+    viewed_at timestamp not null default current_timestamp,
+    primary key(user_id, post_id),
+    constraint fk_history_user foreign key(user_id) references users(id),
+    constraint fk_history_post foreign key(post_id) references posts(id)
+) engine=innodb default charset=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS reports (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    reporter_id BIGINT NOT NULL,
-    post_id BIGINT NULL,
-    comment_id BIGINT NULL,
-    reason VARCHAR(255) NOT NULL,
-    weight INT NOT NULL,
-    handled TINYINT(1) NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_reports_handled(handled, created_at),
-    CONSTRAINT fk_reports_user FOREIGN KEY(reporter_id) REFERENCES users(id),
-    CONSTRAINT fk_reports_post FOREIGN KEY(post_id) REFERENCES posts(id),
-    CONSTRAINT fk_reports_comment FOREIGN KEY(comment_id) REFERENCES comments(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+create table if not exists reports (
+    id bigint primary key auto_increment,
+    reporter_id bigint not null,
+    post_id bigint null,
+    comment_id bigint null,
+    reason varchar(255) not null,
+    weight int not null,
+    handled tinyint(1) not null default 0,
+    created_at timestamp not null default current_timestamp,
+    index idx_reports_handled(handled, created_at),
+    constraint fk_reports_user foreign key(reporter_id) references users(id),
+    constraint fk_reports_post foreign key(post_id) references posts(id),
+    constraint fk_reports_comment foreign key(comment_id) references comments(id)
+) engine=innodb default charset=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS notifications (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    recipient_id BIGINT NOT NULL,
-    actor_id BIGINT NOT NULL,
-    post_id BIGINT NULL,
-    comment_id BIGINT NULL,
-    type VARCHAR(30) NOT NULL,
-    message VARCHAR(255) NOT NULL,
-    read_flag TINYINT(1) NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_notifications_user(recipient_id, read_flag, created_at),
-    CONSTRAINT fk_notifications_recipient FOREIGN KEY(recipient_id) REFERENCES users(id),
-    CONSTRAINT fk_notifications_actor FOREIGN KEY(actor_id) REFERENCES users(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+create table if not exists notifications (
+    id bigint primary key auto_increment,
+    recipient_id bigint not null,
+    actor_id bigint not null,
+    post_id bigint null,
+    comment_id bigint null,
+    type varchar(30) not null,
+    message varchar(255) not null,
+    read_flag tinyint(1) not null default 0,
+    created_at timestamp not null default current_timestamp,
+    index idx_notifications_user(recipient_id, read_flag, created_at),
+    constraint fk_notifications_recipient foreign key(recipient_id) references users(id),
+    constraint fk_notifications_actor foreign key(actor_id) references users(id)
+) engine=innodb default charset=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS sms_codes (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    phone VARCHAR(20) NOT NULL,
-    purpose VARCHAR(20) NOT NULL,
-    code VARCHAR(8) NOT NULL,
-    used TINYINT(1) NOT NULL DEFAULT 0,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_sms_lookup(phone, purpose, code, used, expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+create table if not exists sms_codes (
+    id bigint primary key auto_increment,
+    phone varchar(20) not null,
+    purpose varchar(20) not null,
+    code varchar(8) not null,
+    used tinyint(1) not null default 0,
+    expires_at timestamp not null,
+    created_at timestamp not null default current_timestamp,
+    index idx_sms_lookup(phone, purpose, code, used, expires_at)
+) engine=innodb default charset=utf8mb4;
 
-INSERT INTO users(username, password_hash, phone, role)
-SELECT 'admin', SHA2('admin123', 256), '10000', 'ADMIN'
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');
+insert into users(username, password_hash, phone, role)
+select 'admin', sha2('admin123', 256), '10000', 'ADMIN'
+where not exists (select 1 from users where username = 'admin');

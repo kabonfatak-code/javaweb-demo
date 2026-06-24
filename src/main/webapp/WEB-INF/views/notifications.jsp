@@ -13,12 +13,12 @@
     <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/style.css">
 </head>
 <body>
-<%@ include file="/WEB-INF/views/fragments/header.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/header-v2.jspf" %>
 <main class="page">
     <section class="page-heading">
         <div>
             <h1>信息通知</h1>
-            <p>你的帖子或评论收到评论、点赞、收藏时会出现在这里。</p>
+            <p>点击通知可跳转到对应帖子或评论。</p>
         </div>
     </section>
     <% if (notifications == null || notifications.isEmpty()) { %>
@@ -26,13 +26,13 @@
     <% } else { %>
         <section class="post-list">
             <% for (Notification notification : notifications) { %>
-                <article class="post-card">
+                <a class="post-card notification-card <%= notification.isRead() ? "" : "unread" %>" href="<%= notification.getTargetUrl(ctx) %>">
                     <div class="post-card-head">
                         <strong><%= TextUtils.escapeHtml(notification.getMessage()) %></strong>
                         <time><%= formatter.format(notification.getCreatedAt()) %></time>
                     </div>
                     <p class="post-meta">关联帖子：<%= TextUtils.escapeHtml(notification.getPostTitle()) %></p>
-                </article>
+                </a>
             <% } %>
         </section>
     <% } %>

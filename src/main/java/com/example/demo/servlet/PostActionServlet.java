@@ -1,5 +1,6 @@
 package com.example.demo.servlet;
 
+import com.example.demo.model.Post;
 import com.example.demo.model.User;
 import com.example.demo.repository.BbsRepository;
 import com.example.demo.util.TextUtils;
@@ -31,6 +32,7 @@ public class PostActionServlet extends HttpServlet {
         long postId = WebUtil.parseLong(request.getParameter("id"), -1L);
         String action = TextUtils.trim(request.getParameter("action"));
         String message = "操作已完成";
+        Post freshPost = null;
         try {
             BbsRepository repository = WebUtil.getRepository(getServletContext());
             if ("like".equals(action)) {
@@ -58,6 +60,7 @@ public class PostActionServlet extends HttpServlet {
             } else {
                 throw new IllegalArgumentException("未知操作");
             }
+            freshPost = repository.findPost(postId);
         } catch (IllegalArgumentException | SQLException e) {
             if (isAjax(request)) {
                 writeJson(response, false, e.getMessage());
@@ -69,7 +72,7 @@ public class PostActionServlet extends HttpServlet {
         }
 
         if (isAjax(request)) {
-            writeJson(response, true, message);
+            writeJson(response, true, message, freshPost);
         } else {
             WebUtil.setFlash(request, message);
             redirectWithFragment(response, request.getContextPath() + "/post/detail?id=" + postId + "#actions");
@@ -86,8 +89,25 @@ public class PostActionServlet extends HttpServlet {
     }
 
     private void writeJson(HttpServletResponse response, boolean ok, String message) throws IOException {
+        writeJson(response, ok, message, null);
+    }
+
+    private void writeJson(HttpServletResponse response, boolean ok, String message, Post post) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write("{\"ok\":" + ok + ",\"message\":\"" + jsonEscape(message) + "\"}");
+        StringBuilder json = new StringBuilder();
+        json.append("{\"ok\":").append(ok)
+                .append(",\"message\":\"").append(jsonEscape(message)).append("\"");
+        if (post != null) {
+            json.append(",\"post\":{")
+                    .append("\"id\":").append(post.getId())
+                    .append(",\"likeScore\":").append(post.getLikeScore())
+                    .append(",\"dislikeScore\":").append(post.getDislikeScore())
+                    .append(",\"favoriteCount\":").append(post.getFavoriteCount())
+                    .append(",\"commentCount\":").append(post.getCommentCount())
+                    .append("}");
+        }
+        json.append("}");
+        response.getWriter().write(json.toString());
     }
 
     private String jsonEscape(String text) {

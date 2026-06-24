@@ -36,6 +36,6 @@
         </form>
     </section>
 </main>
-<script src="<%= ctx %>/assets/app.js"></script>
+<script src="<%= ctx %>/assets/app.js?v=20260624-live-stats"></script>
 </body>
 </html>

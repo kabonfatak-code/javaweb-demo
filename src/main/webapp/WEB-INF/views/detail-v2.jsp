@@ -39,11 +39,11 @@
             <% } %>
         </div>
         <div class="detail-content"><%= TextUtils.escapeHtmlWithLineBreaks(post.getContent()) %></div>
-        <div class="stats action-stats" id="actions">
-            <span>赞 <%= post.getLikeScore() %></span>
-            <span>踩 <%= post.getDislikeScore() %></span>
-            <span>收藏 <%= post.getFavoriteCount() %></span>
-            <span>评论 <%= post.getCommentCount() %></span>
+        <div class="stats action-stats" id="actions" data-post-stats data-post-id="<%= post.getId() %>">
+            <span>赞 <span data-post-stat="likeScore"><%= post.getLikeScore() %></span></span>
+            <span>踩 <span data-post-stat="dislikeScore"><%= post.getDislikeScore() %></span></span>
+            <span>收藏 <span data-post-stat="favoriteCount"><%= post.getFavoriteCount() %></span></span>
+            <span>评论 <span data-post-stat="commentCount"><%= post.getCommentCount() %></span></span>
         </div>
 
         <% if (loginUser != null) { %>
@@ -88,7 +88,10 @@
                     <div class="comment-meta">
                         <strong><%= TextUtils.escapeHtml(comment.getAuthorUsername()) %></strong>
                         <time><%= formatter.format(comment.getCreatedAt()) %></time>
-                        <span>赞 <%= comment.getLikeScore() %> · 踩 <%= comment.getDislikeScore() %></span>
+                        <span class="comment-stats" data-comment-stats data-comment-id="<%= comment.getId() %>">
+                            赞 <span data-comment-stat="likeScore"><%= comment.getLikeScore() %></span> ·
+                            踩 <span data-comment-stat="dislikeScore"><%= comment.getDislikeScore() %></span>
+                        </span>
                     </div>
                     <div class="comment-content"><%= TextUtils.escapeHtmlWithLineBreaks(comment.getContent()) %></div>
                     <% if (loginUser != null) { %>
@@ -137,6 +140,6 @@
     <a class="back-link" href="<%= ctx %>/posts">返回主页</a>
     <div class="inline-message" id="actionMessage" aria-live="polite"></div>
 </main>
-<script src="<%= ctx %>/assets/app.js"></script>
+<script src="<%= ctx %>/assets/app.js?v=20260624-live-stats"></script>
 </body>
 </html>

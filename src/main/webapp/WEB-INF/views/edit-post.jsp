@@ -13,28 +13,21 @@
     <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/style.css">
 </head>
 <body>
-<%@ include file="/WEB-INF/views/fragments/header.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/header-v2.jspf" %>
 <main class="page">
     <section class="form-card wide">
         <h1>编辑帖子</h1>
         <% if (error != null) { %><div class="error"><%= TextUtils.escapeHtml(error) %></div><% } %>
         <form method="post" action="<%= ctx %>/post/edit">
             <input type="hidden" name="id" value="<%= post.getId() %>">
-            <label>标题
-                <input type="text" name="title" value="<%= TextUtils.escapeHtml(post.getTitle()) %>" maxlength="120" required>
-            </label>
             <div class="form-grid">
                 <label>主题
-                    <select name="topic">
-                        <% for (String topic : ForumOptions.TOPICS) { %>
-                            <option value="<%= topic %>" <%= topic.equals(post.getTopic()) ? "selected" : "" %>><%= topic %></option>
-                        <% } %>
-                    </select>
+                    <input type="text" name="topic" value="<%= TextUtils.escapeHtml(post.getTopic()) %>" maxlength="30" required>
                 </label>
-                <label>地区
-                    <select name="region">
-                        <% for (String region : ForumOptions.REGIONS) { %>
-                            <option value="<%= region %>" <%= region.equals(post.getRegion()) ? "selected" : "" %>><%= region %></option>
+                <label>省份
+                    <select name="region" required>
+                        <% for (String province : ForumOptions.PROVINCES) { %>
+                            <option value="<%= province %>" <%= province.equals(post.getRegion()) ? "selected" : "" %>><%= province %></option>
                         <% } %>
                     </select>
                 </label>

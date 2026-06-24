@@ -40,6 +40,36 @@
         }, 2200);
     }
 
+    function setStatText(root, selector, value) {
+        if (!root || value === undefined || value === null) {
+            return;
+        }
+        var target = root.querySelector(selector);
+        if (target) {
+            target.textContent = String(value);
+        }
+    }
+
+    function updatePostStats(post) {
+        if (!post || !post.id) {
+            return;
+        }
+        var root = document.querySelector("[data-post-stats][data-post-id='" + post.id + "']");
+        setStatText(root, "[data-post-stat='likeScore']", post.likeScore);
+        setStatText(root, "[data-post-stat='dislikeScore']", post.dislikeScore);
+        setStatText(root, "[data-post-stat='favoriteCount']", post.favoriteCount);
+        setStatText(root, "[data-post-stat='commentCount']", post.commentCount);
+    }
+
+    function updateCommentStats(comment) {
+        if (!comment || !comment.id) {
+            return;
+        }
+        var root = document.querySelector("[data-comment-stats][data-comment-id='" + comment.id + "']");
+        setStatText(root, "[data-comment-stat='likeScore']", comment.likeScore);
+        setStatText(root, "[data-comment-stat='dislikeScore']", comment.dislikeScore);
+    }
+
     document.addEventListener("click", function (event) {
         var disclosureButton = event.target.closest("[data-disclosure-toggle]");
         if (disclosureButton) {
@@ -144,7 +174,9 @@
             submitter.disabled = true;
         }
 
-        fetch(form.action, {
+        var actionUrl = new URL(form.getAttribute("action"), window.location.href).toString();
+
+        fetch(actionUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
@@ -156,6 +188,9 @@
         }).then(function (data) {
             showActionMessage(data.message, data.ok);
             if (data.ok) {
+                updatePostStats(data.post);
+                updateCommentStats(data.comment);
+
                 var action = body.get("action");
                 if (action === "report") {
                     var reason = form.querySelector("input[name='reason']");
