@@ -18,7 +18,7 @@
     <section class="page-heading">
         <div>
             <h1>信息通知</h1>
-            <p>点击通知可跳转到对应帖子或评论。</p>
+            <p>点击通知可跳转到对应留言或评论。</p>
         </div>
     </section>
     <% if (notifications == null || notifications.isEmpty()) { %>
@@ -31,7 +31,7 @@
                         <strong><%= TextUtils.escapeHtml(notification.getMessage()) %></strong>
                         <time><%= formatter.format(notification.getCreatedAt()) %></time>
                     </div>
-                    <p class="post-meta">关联帖子：<%= TextUtils.escapeHtml(notification.getPostTitle()) %></p>
+                    <p class="post-meta">关联留言：<%= TextUtils.escapeHtml(notification.getPostTitle()) %></p>
                 </a>
             <% } %>
         </section>

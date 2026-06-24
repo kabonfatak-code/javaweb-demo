@@ -28,13 +28,24 @@ public class AdminActionServlet extends HttpServlet {
             BbsRepository repository = WebUtil.getRepository(getServletContext());
             if ("user".equals(action)) {
                 long userId = WebUtil.parseLong(request.getParameter("userId"), -1L);
+                String banAction = request.getParameter("banAction");
+                boolean banned;
+                int banDays;
+                if (banAction != null && banAction.contains(":")) {
+                    String[] parts = banAction.split(":");
+                    banned = "1".equals(parts[0]);
+                    banDays = Integer.parseInt(parts[1]);
+                } else {
+                    banned = "1".equals(request.getParameter("banned"));
+                    banDays = WebUtil.parseInt(request.getParameter("banDays"), 0);
+                }
                 repository.adminUpdateUser(
                         user.getId(),
                         userId,
                         request.getParameter("phone"),
                         TextUtils.trim(request.getParameter("role")),
-                        "1".equals(request.getParameter("banned")),
-                        WebUtil.parseInt(request.getParameter("banDays"), 0)
+                        banned,
+                        banDays
                 );
                 WebUtil.setFlash(request, "用户信息已更新");
             } else if ("pin".equals(action)) {

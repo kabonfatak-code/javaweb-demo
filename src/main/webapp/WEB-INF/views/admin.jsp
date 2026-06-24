@@ -33,7 +33,7 @@
                     <div class="post-card-head">
                         <div>
                             <a class="post-title" href="<%= ctx %>/post/detail?id=<%= report.getPostId() %><%= report.getTargetAnchor() %>">
-                                <%= TextUtils.escapeHtml("comment".equals(report.getTargetType()) ? "评论举报：" + report.getPostTitle() : "帖子举报：" + report.getPostTitle()) %>
+                                <%= TextUtils.escapeHtml("comment".equals(report.getTargetType()) ? "评论举报：" + report.getPostTitle() : "留言举报：" + report.getPostTitle()) %>
                             </a>
                             <div class="post-meta">
                                 <span>被举报用户：<%= TextUtils.escapeHtml(report.getTargetUsername()) %></span>
@@ -77,7 +77,6 @@
                     <th>电话</th>
                     <th>类型</th>
                     <th>状态</th>
-                    <th>封号时长</th>
                     <th>操作</th>
                 </tr>
                 </thead>
@@ -88,24 +87,34 @@
                             <td><%= TextUtils.escapeHtml(item.getUsername()) %></td>
                             <td><input type="text" name="phone" value="<%= TextUtils.escapeHtml(item.getPhone()) %>"></td>
                             <td><%= TextUtils.escapeHtml(item.getRoleLabel()) %></td>
+                            <%
+                                String banState;
+                                if (!item.isBanned()) {
+                                    banState = "0:0";
+                                } else if (item.getBannedUntil() == null) {
+                                    banState = "1:0";
+                                } else {
+                                    long daysLeft = java.time.temporal.ChronoUnit.DAYS.between(
+                                        java.time.LocalDateTime.now(), item.getBannedUntil());
+                                    if (daysLeft <= 1) banState = "1:1";
+                                    else if (daysLeft <= 7) banState = "1:7";
+                                    else if (daysLeft <= 30) banState = "1:30";
+                                    else banState = "1:365";
+                                }
+                            %>
                             <td>
-                                <select name="banned" <%= item.getId() == loginUser.getId() ? "disabled" : "" %>>
-                                    <option value="0" <%= item.isBanned() ? "" : "selected" %>>正常</option>
-                                    <option value="1" <%= item.isBanned() ? "selected" : "" %>>封禁</option>
+                                <select name="banAction" <%= item.getId() == loginUser.getId() ? "disabled" : "" %>>
+                                    <option value="0:0" <%= "0:0".equals(banState) ? "selected" : "" %>>正常</option>
+                                    <option value="1:1" <%= "1:1".equals(banState) ? "selected" : "" %>>封禁 1 天</option>
+                                    <option value="1:7" <%= "1:7".equals(banState) ? "selected" : "" %>>封禁 7 天</option>
+                                    <option value="1:30" <%= "1:30".equals(banState) ? "selected" : "" %>>封禁 30 天</option>
+                                    <option value="1:365" <%= "1:365".equals(banState) ? "selected" : "" %>>封禁 365 天</option>
+                                    <option value="1:0" <%= "1:0".equals(banState) ? "selected" : "" %>>永久封禁</option>
                                 </select>
                                 <% if (item.getId() == loginUser.getId()) { %>
-                                    <input type="hidden" name="banned" value="0">
+                                    <input type="hidden" name="banAction" value="0:0">
                                 <% } %>
                                 <input type="hidden" name="role" value="<%= item.getRole() %>">
-                            </td>
-                            <td>
-                                <select name="banDays">
-                                    <option value="0">永久或解封</option>
-                                    <option value="1">1 天</option>
-                                    <option value="7">7 天</option>
-                                    <option value="30">30 天</option>
-                                    <option value="365">365 天</option>
-                                </select>
                             </td>
                             <td>
                                 <input type="hidden" name="action" value="user">
@@ -119,6 +128,5 @@
             </table>
         </div>
     </section>
-</main>
-</body>
+</main></body>
 </html>

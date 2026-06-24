@@ -22,7 +22,6 @@
             <a href="<%= ctx %>/login">登录</a>
             <a class="nav-strong" href="<%= ctx %>/register">注册</a>
         <% } else { %>
-            <a class="nav-strong" href="<%= ctx %>/post/new">发表</a>
             <a class="notify-link" href="<%= ctx %>/notifications">通知<% if (unreadCount > 0) { %><span class="notify-dot"><%= unreadCount %></span><% } %></a>
             <a href="<%= ctx %>/profile">个人主页</a>
             <% if (loginUser.isAdmin()) { %>

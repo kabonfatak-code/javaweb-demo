@@ -30,7 +30,7 @@
             <% if (loginUser != null && (loginUser.isAdmin() || loginUser.getId() == post.getAuthorId())) { %>
                 <div class="button-row">
                     <a class="button" href="<%= ctx %>/post/edit?id=<%= post.getId() %>">编辑</a>
-                    <form method="post" action="<%= ctx %>/post/action" onsubmit="return confirm('确认删除该帖子？');">
+                    <form method="post" action="<%= ctx %>/post/action" onsubmit="return confirm('确认删除该留言？');">
                         <input type="hidden" name="id" value="<%= post.getId() %>">
                         <input type="hidden" name="action" value="delete">
                         <button class="button danger" type="submit">删除</button>

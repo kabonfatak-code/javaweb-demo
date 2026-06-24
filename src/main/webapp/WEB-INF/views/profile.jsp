@@ -37,7 +37,7 @@
             <a class="<%= "edit".equals(tab) ? "active" : "" %>" href="<%= ctx %>/profile?tab=edit">账号修改</a>
             <a class="<%= "history".equals(tab) ? "active" : "" %>" href="<%= ctx %>/profile?tab=history">历史浏览</a>
             <a class="<%= "favorites".equals(tab) ? "active" : "" %>" href="<%= ctx %>/profile?tab=favorites">收藏</a>
-            <a class="<%= "posts".equals(tab) ? "active" : "" %>" href="<%= ctx %>/profile?tab=posts">我的发表</a>
+            <a class="<%= "posts".equals(tab) ? "active" : "" %>" href="<%= ctx %>/profile?tab=posts">我的留言</a>
         </nav>
 
         <% if ("account".equals(tab)) { %>
@@ -82,7 +82,7 @@
             <%= renderPosts(favorites, ctx, formatter) %>
         <% } else { %>
             <% if (myPosts == null || myPosts.isEmpty()) { %>
-                <section class="empty-state">你还没有发表帖子</section>
+                <section class="empty-state">你还没有发表留言</section>
             <% } else { %>
                 <section class="post-list">
                     <% for (Post post : myPosts) { %>
@@ -91,7 +91,7 @@
                             <div class="post-meta"><%= formatter.format(post.getCreatedAt()) %> · 赞 <%= post.getLikeScore() %> · 收藏 <%= post.getFavoriteCount() %></div>
                             <div class="button-row">
                                 <a class="button" href="<%= ctx %>/post/edit?id=<%= post.getId() %>">编辑</a>
-                                <form method="post" action="<%= ctx %>/post/action" onsubmit="return confirm('确认删除该帖子？');">
+                                <form method="post" action="<%= ctx %>/post/action" onsubmit="return confirm('确认删除该留言？');">
                                     <input type="hidden" name="id" value="<%= post.getId() %>">
                                     <button class="button danger" type="submit" name="action" value="delete">删除</button>
                                 </form>

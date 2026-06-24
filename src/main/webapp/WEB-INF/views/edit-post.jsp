@@ -9,14 +9,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>编辑帖子 - BBS 论坛</title>
+    <title>编辑留言 - BBS 论坛</title>
     <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/style.css">
 </head>
 <body>
 <%@ include file="/WEB-INF/views/fragments/header-v2.jspf" %>
 <main class="page">
     <section class="form-card wide">
-        <h1>编辑帖子</h1>
+        <h1>编辑留言</h1>
         <% if (error != null) { %><div class="error"><%= TextUtils.escapeHtml(error) %></div><% } %>
         <form method="post" action="<%= ctx %>/post/edit">
             <input type="hidden" name="id" value="<%= post.getId() %>">

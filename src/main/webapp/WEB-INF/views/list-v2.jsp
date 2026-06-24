@@ -70,15 +70,15 @@
     <section class="feed">
         <div class="page-heading compact">
             <div>
-                <h1>帖子</h1>
+                <h1>留言</h1>
             </div>
             <% if (loginUser != null) { %>
-                <a class="button primary" href="<%= ctx %>/post/new">发表帖子</a>
+                <a class="button primary" href="<%= ctx %>/post/new">发表留言</a>
             <% } %>
         </div>
 
         <% if (posts == null || posts.isEmpty()) { %>
-            <section class="empty-state">暂无帖子</section>
+            <section class="empty-state">暂无留言</section>
         <% } else { %>
             <div class="post-list">
                 <% for (Post post : posts) { %>
