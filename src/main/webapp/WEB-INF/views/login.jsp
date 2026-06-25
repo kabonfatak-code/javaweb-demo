@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/style.css">
 </head>
 <body>
-<%@ include file="/WEB-INF/views/fragments/header-v2.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/header.jspf" %>
 <main class="page narrow">
     <section class="form-card">
         <h1 data-login-heading><%= smsMode ? "手机号验证码登录" : "用户名密码登录" %></h1>

@@ -33,7 +33,7 @@ public class PostListServlet extends HttpServlet {
             request.setAttribute("currentPage", page);
             request.setAttribute("totalPages", totalPages);
             request.setAttribute("totalCount", totalCount);
-            request.getRequestDispatcher("/WEB-INF/views/list-v2.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/list.jsp").forward(request, response);
         } catch (SQLException e) {
             throw new ServletException(e);
         }

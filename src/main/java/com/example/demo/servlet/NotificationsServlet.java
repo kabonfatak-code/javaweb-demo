@@ -26,7 +26,7 @@ public class NotificationsServlet extends HttpServlet {
         try {
             BbsRepository repository = WebUtil.getRepository(getServletContext());
             request.setAttribute("notifications", repository.findNotifications(user.getId()));
-            request.getRequestDispatcher("/WEB-INF/views/notifications-v2.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/notifications.jsp").forward(request, response);
         } catch (SQLException e) {
             throw new ServletException(e);
         }

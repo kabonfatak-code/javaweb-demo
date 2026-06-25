@@ -32,7 +32,7 @@ public class EditPostServlet extends HttpServlet {
                 return;
             }
             request.setAttribute("post", post);
-            request.getRequestDispatcher("/WEB-INF/views/edit-post-v2.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/edit-post.jsp").forward(request, response);
         } catch (SQLException e) {
             throw new ServletException(e);
         }

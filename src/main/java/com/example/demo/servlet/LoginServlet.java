@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class LoginServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        request.getRequestDispatcher("/WEB-INF/views/login-v2.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/login.jsp").forward(request, response);
     }
 
     @Override
@@ -38,12 +38,12 @@ public class LoginServlet extends HttpServlet {
                 request.setAttribute("username", TextUtils.trim(request.getParameter("username")));
                 request.setAttribute("phone", TextUtils.trim(request.getParameter("phone")));
                 request.setAttribute("mode", mode);
-                request.getRequestDispatcher("/WEB-INF/views/login-v2.jsp").forward(request, response);
+                request.getRequestDispatcher("/WEB-INF/views/login.jsp").forward(request, response);
                 return;
             }
             if (user.isBanned()) {
                 request.setAttribute("error", "账号已被封禁，请联系管理员");
-                request.getRequestDispatcher("/WEB-INF/views/login-v2.jsp").forward(request, response);
+                request.getRequestDispatcher("/WEB-INF/views/login.jsp").forward(request, response);
                 return;
             }
 
@@ -53,7 +53,7 @@ public class LoginServlet extends HttpServlet {
         } catch (IllegalArgumentException | SQLException e) {
             request.setAttribute("error", e.getMessage());
             request.setAttribute("mode", mode);
-            request.getRequestDispatcher("/WEB-INF/views/login-v2.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/login.jsp").forward(request, response);
         }
     }
 }

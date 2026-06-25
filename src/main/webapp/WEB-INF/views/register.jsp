@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/style.css">
 </head>
 <body>
-<%@ include file="/WEB-INF/views/fragments/header-v2.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/header.jspf" %>
 <main class="page narrow">
     <section class="form-card">
         <h1>注册</h1>

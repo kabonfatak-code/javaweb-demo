@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/style.css">
 </head>
 <body>
-<%@ include file="/WEB-INF/views/fragments/header-v2.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/header.jspf" %>
 <main class="page">
     <section class="form-card wide">
         <h1>编辑留言</h1>

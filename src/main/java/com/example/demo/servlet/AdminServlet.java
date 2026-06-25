@@ -27,7 +27,7 @@ public class AdminServlet extends HttpServlet {
             BbsRepository repository = WebUtil.getRepository(getServletContext());
             request.setAttribute("users", repository.findUsers());
             request.setAttribute("reports", repository.findReports());
-            request.getRequestDispatcher("/WEB-INF/views/admin-v2.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/admin.jsp").forward(request, response);
         } catch (SQLException e) {
             throw new ServletException(e);
         }

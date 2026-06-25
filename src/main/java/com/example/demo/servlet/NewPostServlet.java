@@ -22,7 +22,7 @@ public class NewPostServlet extends HttpServlet {
         if (!ensureLogin(request, response)) {
             return;
         }
-        request.getRequestDispatcher("/WEB-INF/views/new-post-v2.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/new-post.jsp").forward(request, response);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class NewPostServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/post/detail?id=" + post.getId());
         } catch (IllegalArgumentException | SQLException e) {
             request.setAttribute("error", e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/new-post-v2.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/new-post.jsp").forward(request, response);
         }
     }
 

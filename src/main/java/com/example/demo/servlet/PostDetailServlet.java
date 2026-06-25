@@ -33,7 +33,7 @@ public class PostDetailServlet extends HttpServlet {
             repository.addHistory(user, id);
             request.setAttribute("post", post);
             request.setAttribute("comments", repository.findComments(id));
-            request.getRequestDispatcher("/WEB-INF/views/detail-v2.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/detail.jsp").forward(request, response);
         } catch (SQLException e) {
             throw new ServletException(e);
         }

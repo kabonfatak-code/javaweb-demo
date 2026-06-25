@@ -17,7 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class RegisterServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        request.getRequestDispatcher("/WEB-INF/views/register-v2.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(request, response);
     }
 
     @Override
@@ -37,7 +37,7 @@ public class RegisterServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/login");
         } catch (IllegalArgumentException | SQLException e) {
             request.setAttribute("error", e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/register-v2.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/register.jsp").forward(request, response);
         }
     }
 }
