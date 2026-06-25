@@ -22,6 +22,7 @@ create table if not exists posts (
     region varchar(30) not null,
     content text not null,
     author_id bigint not null,
+    ip_address varchar(45) null,
     pinned tinyint(1) not null default 0,
     deleted tinyint(1) not null default 0,
     like_score int not null default 0,

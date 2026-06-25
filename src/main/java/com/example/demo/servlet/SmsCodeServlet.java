@@ -1,6 +1,8 @@
 package com.example.demo.servlet;
 
 import com.example.demo.repository.BbsRepository;
+import com.example.demo.sms.AliyunSmsSender;
+import com.example.demo.sms.SmsSendException;
 import com.example.demo.util.TextUtils;
 import com.example.demo.util.WebUtil;
 
@@ -18,6 +20,7 @@ public class SmsCodeServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.setContentType("application/json; charset=UTF-8");
         String phone = TextUtils.trim(request.getParameter("phone"));
+        String normalizedPhone = phone.replaceAll("\\s+", "");
         String purpose = TextUtils.trim(request.getParameter("purpose"));
         if (!"REGISTER".equals(purpose) && !"LOGIN".equals(purpose) && !"RESET".equals(purpose)) {
             purpose = "LOGIN";
@@ -25,10 +28,14 @@ public class SmsCodeServlet extends HttpServlet {
 
         try {
             BbsRepository repository = WebUtil.getRepository(getServletContext());
-            String code = repository.createSmsCode(phone, purpose);
-            response.getWriter().write("{\"ok\":true,\"code\":\"" + code + "\",\"message\":\"模拟短信验证码已生成\"}");
+            String code = repository.createSmsCode(normalizedPhone, purpose);
+            AliyunSmsSender.sendCode(normalizedPhone, code, purpose);
+            response.getWriter().write("{\"ok\":true,\"message\":\"验证码已发送，请查收短信\"}");
         } catch (IllegalArgumentException | SQLException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write("{\"ok\":false,\"message\":\"" + json(e.getMessage()) + "\"}");
+        } catch (SmsSendException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.getWriter().write("{\"ok\":false,\"message\":\"" + json(e.getMessage()) + "\"}");
         }
     }

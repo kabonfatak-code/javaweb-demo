@@ -73,4 +73,85 @@ public final class WebUtil {
         session.removeAttribute(FLASH_KEY);
         return message;
     }
+
+    public static String getClientIp(HttpServletRequest request) {
+        String[] headerNames = {
+                "X-Forwarded-For",
+                "X-Real-IP",
+                "Ali-CDN-Real-IP",
+                "X-Client-IP",
+                "X-Cluster-Client-IP",
+                "Proxy-Client-IP",
+                "WL-Proxy-Client-IP"
+        };
+        for (String headerName : headerNames) {
+            String value = firstIp(request.getHeader(headerName));
+            if (!value.isEmpty() && !"unknown".equalsIgnoreCase(value)) {
+                return value;
+            }
+        }
+        String forwardedIp = forwardedIp(request.getHeader("Forwarded"));
+        if (!forwardedIp.isEmpty()) {
+            return forwardedIp;
+        }
+        String remoteAddr = request.getRemoteAddr();
+        return remoteAddr == null ? "" : remoteAddr;
+    }
+
+    public static String getClientProvince(HttpServletRequest request) {
+        String[] headerNames = {
+                "X-Client-Province",
+                "X-Province",
+                "X-GeoIP-Region",
+                "X-GeoIP-Province"
+        };
+        for (String headerName : headerNames) {
+            String province = ForumOptions.normalizeProvince(request.getHeader(headerName));
+            if (!province.isEmpty()) {
+                return province;
+            }
+        }
+        return IpLocationUtil.resolveProvince(getClientIp(request));
+    }
+
+    private static String firstIp(String text) {
+        if (text == null) {
+            return "";
+        }
+        String value = text.trim();
+        int commaIndex = value.indexOf(',');
+        if (commaIndex >= 0) {
+            value = value.substring(0, commaIndex).trim();
+        }
+        return value;
+    }
+
+    private static String forwardedIp(String text) {
+        if (text == null) {
+            return "";
+        }
+        String[] items = text.split(",");
+        for (String item : items) {
+            String[] parts = item.split(";");
+            for (String part : parts) {
+                String value = part.trim();
+                if (value.toLowerCase().startsWith("for=")) {
+                    value = value.substring(4).trim();
+                    if (value.startsWith("\"") && value.endsWith("\"") && value.length() > 1) {
+                        value = value.substring(1, value.length() - 1);
+                    }
+                    if (value.startsWith("[") && value.contains("]")) {
+                        value = value.substring(1, value.indexOf(']'));
+                    }
+                    int portIndex = value.lastIndexOf(':');
+                    if (portIndex > 0 && value.indexOf(':') == portIndex) {
+                        value = value.substring(0, portIndex);
+                    }
+                    return value;
+                }
+            }
+        }
+        return "";
+    }
+
 }

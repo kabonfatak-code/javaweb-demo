@@ -35,16 +35,21 @@ public class NewPostServlet extends HttpServlet {
         }
 
         String topic = TextUtils.trim(request.getParameter("topic"));
-        String region = TextUtils.trim(request.getParameter("region"));
         String content = TextUtils.trim(request.getParameter("content"));
         String title = deriveTitle(content);
         request.setAttribute("topic", topic);
-        request.setAttribute("region", region);
         request.setAttribute("content", content);
 
         try {
             BbsRepository repository = WebUtil.getRepository(getServletContext());
-            Post post = repository.addPost(title, topic, region, content, loginUser);
+            Post post = repository.addPost(
+                    title,
+                    topic,
+                    content,
+                    loginUser,
+                    WebUtil.getClientIp(request),
+                    WebUtil.getClientProvince(request)
+            );
             WebUtil.setFlash(request, "帖子发表成功");
             response.sendRedirect(request.getContextPath() + "/post/detail?id=" + post.getId());
         } catch (IllegalArgumentException | SQLException e) {

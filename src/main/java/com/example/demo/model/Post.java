@@ -12,6 +12,7 @@ public class Post implements Serializable {
     private long authorId;
     private String authorUsername;
     private String authorRole;
+    private String authorIp;
     private boolean pinned;
     private boolean deleted;
     private int likeScore;
@@ -25,7 +26,7 @@ public class Post implements Serializable {
     }
 
     public Post(long id, String title, String topic, String region, String content, long authorId, String authorUsername,
-                String authorRole, boolean pinned, boolean deleted, int likeScore, int dislikeScore,
+                String authorRole, String authorIp, boolean pinned, boolean deleted, int likeScore, int dislikeScore,
                 int favoriteCount, int commentCount, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.title = title;
@@ -35,6 +36,7 @@ public class Post implements Serializable {
         this.authorId = authorId;
         this.authorUsername = authorUsername;
         this.authorRole = authorRole;
+        this.authorIp = authorIp;
         this.pinned = pinned;
         this.deleted = deleted;
         this.likeScore = likeScore;
@@ -107,6 +109,14 @@ public class Post implements Serializable {
 
     public void setAuthorRole(String authorRole) {
         this.authorRole = authorRole;
+    }
+
+    public String getAuthorIp() {
+        return authorIp;
+    }
+
+    public void setAuthorIp(String authorIp) {
+        this.authorIp = authorIp;
     }
 
     public boolean isPinned() {

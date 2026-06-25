@@ -30,14 +30,6 @@
                     <% }} %>
                 </select>
             </label>
-            <label>省份
-                <select name="region">
-                    <option value="">全部省份</option>
-                    <% for (String province : ForumOptions.PROVINCES) { %>
-                        <option value="<%= province %>" <%= province.equals(criteria.getRegion()) ? "selected" : "" %>><%= province %></option>
-                    <% } %>
-                </select>
-            </label>
             <label>关键词
                 <input type="text" name="keyword" value="<%= TextUtils.escapeHtml(criteria.getKeyword()) %>" placeholder="正文关键词">
             </label>

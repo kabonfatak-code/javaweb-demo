@@ -2,7 +2,6 @@ package com.example.demo.model;
 
 public class PostSearchCriteria {
     private String topic;
-    private String region;
     private String keyword;
     private int days;
     private int minLikes;
@@ -15,14 +14,6 @@ public class PostSearchCriteria {
 
     public void setTopic(String topic) {
         this.topic = topic;
-    }
-
-    public String getRegion() {
-        return region;
-    }
-
-    public void setRegion(String region) {
-        this.region = region;
     }
 
     public String getKeyword() {
@@ -66,7 +57,7 @@ public class PostSearchCriteria {
     }
 
     public boolean isEmpty() {
-        return isBlank(topic) && isBlank(region) && isBlank(keyword) && days <= 0 && minLikes <= 0 && minFavorites <= 0;
+        return isBlank(topic) && isBlank(keyword) && days <= 0 && minLikes <= 0 && minFavorites <= 0;
     }
 
     private boolean isBlank(String text) {

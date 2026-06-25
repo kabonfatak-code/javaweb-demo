@@ -1,9 +1,8 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ page import="com.example.demo.util.TextUtils,com.example.demo.util.ForumOptions" %>
+<%@ page import="com.example.demo.util.TextUtils" %>
 <%
     String error = (String) request.getAttribute("error");
     String savedTopic = (String) request.getAttribute("topic");
-    String savedRegion = (String) request.getAttribute("region");
     String savedContent = (String) request.getAttribute("content");
 %>
 <!DOCTYPE html>
@@ -24,14 +23,6 @@
             <div class="form-grid">
                 <label>主题
                     <input type="text" name="topic" value="<%= TextUtils.escapeHtml(savedTopic) %>" maxlength="30" placeholder="例如：考研交流、二手交易" required>
-                </label>
-                <label>省份
-                    <select name="region" required>
-                        <option value="">请选择省份</option>
-                        <% for (String province : ForumOptions.PROVINCES) { %>
-                            <option value="<%= province %>" <%= province.equals(savedRegion) ? "selected" : "" %>><%= province %></option>
-                        <% } %>
-                    </select>
                 </label>
             </div>
             <label>正文

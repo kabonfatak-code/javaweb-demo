@@ -42,7 +42,6 @@ public class PostListServlet extends HttpServlet {
     private PostSearchCriteria buildCriteria(HttpServletRequest request) {
         PostSearchCriteria criteria = new PostSearchCriteria();
         criteria.setTopic(TextUtils.trim(request.getParameter("topic")));
-        criteria.setRegion(TextUtils.trim(request.getParameter("region")));
         criteria.setKeyword(TextUtils.trim(request.getParameter("keyword")));
         criteria.setDays(WebUtil.parseInt(request.getParameter("days"), 0));
         criteria.setMinLikes(WebUtil.parseInt(request.getParameter("minLikes"), 0));

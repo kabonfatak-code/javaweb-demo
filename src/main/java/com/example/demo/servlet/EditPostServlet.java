@@ -53,7 +53,6 @@ public class EditPostServlet extends HttpServlet {
                     postId,
                     deriveTitle(content),
                     TextUtils.trim(request.getParameter("topic")),
-                    TextUtils.trim(request.getParameter("region")),
                     content,
                     user
             );

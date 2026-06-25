@@ -146,7 +146,7 @@
             return response.json();
         }).then(function (data) {
             if (result) {
-                result.textContent = data.ok ? "演示验证码：" + data.code : data.message;
+                result.textContent = data.message;
             }
         }).catch(function () {
             if (result) {

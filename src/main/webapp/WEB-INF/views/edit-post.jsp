@@ -1,5 +1,5 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ page import="com.example.demo.model.Post,com.example.demo.util.TextUtils,com.example.demo.util.ForumOptions" %>
+<%@ page import="com.example.demo.model.Post,com.example.demo.util.TextUtils" %>
 <%
     Post post = (Post) request.getAttribute("post");
     String error = (String) request.getAttribute("error");
@@ -23,13 +23,6 @@
             <div class="form-grid">
                 <label>主题
                     <input type="text" name="topic" value="<%= TextUtils.escapeHtml(post.getTopic()) %>" maxlength="30" required>
-                </label>
-                <label>省份
-                    <select name="region" required>
-                        <% for (String province : ForumOptions.PROVINCES) { %>
-                            <option value="<%= province %>" <%= province.equals(post.getRegion()) ? "selected" : "" %>><%= province %></option>
-                        <% } %>
-                    </select>
                 </label>
             </div>
             <label>正文

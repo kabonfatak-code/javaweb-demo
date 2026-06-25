@@ -8,6 +8,7 @@ import com.example.demo.model.Report;
 import com.example.demo.model.User;
 import com.example.demo.util.DbUtil;
 import com.example.demo.util.ForumOptions;
+import com.example.demo.util.IpLocationUtil;
 import com.example.demo.util.PasswordUtils;
 import com.example.demo.util.TextUtils;
 
@@ -57,6 +58,7 @@ public class JdbcBbsRepository {
                     + "region VARCHAR(30) NOT NULL,"
                     + "content TEXT NOT NULL,"
                     + "author_id BIGINT NOT NULL,"
+                    + "ip_address VARCHAR(45) NULL,"
                     + "pinned TINYINT(1) NOT NULL DEFAULT 0,"
                     + "deleted TINYINT(1) NOT NULL DEFAULT 0,"
                     + "like_score INT NOT NULL DEFAULT 0,"
@@ -171,7 +173,10 @@ public class JdbcBbsRepository {
             ensureColumn(connection, "users", "province", "ALTER TABLE users ADD COLUMN province VARCHAR(20) NULL AFTER phone");
             ensureColumn(connection, "users", "banned_until", "ALTER TABLE users ADD COLUMN banned_until TIMESTAMP NULL AFTER banned");
             ensureColumn(connection, "users", "register_time", "ALTER TABLE users ADD COLUMN register_time TIMESTAMP NULL AFTER created_at");
+            ensureColumn(connection, "posts", "ip_address", "ALTER TABLE posts ADD COLUMN ip_address VARCHAR(45) NULL AFTER author_id");
             executeUpdate(connection, "UPDATE users SET register_time = created_at WHERE register_time IS NULL");
+            executeUpdate(connection, "UPDATE posts SET region = ? WHERE region IS NULL OR region = '' OR region = 'ip' OR region = '地区' OR region = '全国'",
+                    IpLocationUtil.UNKNOWN_REGION);
 
             try (PreparedStatement prepared = connection.prepareStatement(
                     "INSERT INTO users(username, password_hash, phone, province, role, banned, banned_until, history_enabled, created_at, register_time) "
@@ -192,6 +197,7 @@ public class JdbcBbsRepository {
         if (normalizedPhone.isEmpty()) {
             throw new IllegalArgumentException("请输入电话");
         }
+        validatePhone(normalizedPhone);
 
         String code = String.format("%06d", random.nextInt(1000000));
         try (Connection connection = DbUtil.getConnection();
@@ -223,17 +229,11 @@ public class JdbcBbsRepository {
     }
 
     public User register(String username, String password, String phone, String smsCode) throws SQLException {
-        return register(username, password, phone, null, smsCode);
-    }
-
-    public User register(String username, String password, String phone, String province, String smsCode) throws SQLException {
         String normalizedUsername = TextUtils.trim(username);
         String normalizedPhone = normalizePhone(phone);
-        String cleanProvince = TextUtils.trim(province);
         validateUsername(normalizedUsername);
         validatePassword(password);
         validatePhone(normalizedPhone);
-        validateProvinceIfPresent(cleanProvince);
 
         try (Connection connection = DbUtil.getConnection()) {
             connection.setAutoCommit(false);
@@ -252,7 +252,7 @@ public class JdbcBbsRepository {
                     prepared.setString(1, normalizedUsername);
                     prepared.setString(2, PasswordUtils.sha256(password));
                     prepared.setString(3, normalizedPhone);
-                    prepared.setString(4, cleanProvince.isEmpty() ? null : cleanProvince);
+                    prepared.setString(4, null);
                     prepared.setString(5, User.ROLE_NEW);
                     prepared.executeUpdate();
                     long id = readGeneratedId(prepared);
@@ -409,20 +409,21 @@ public class JdbcBbsRepository {
         }
     }
 
-    public Post addPost(String title, String topic, String region, String content, User author) throws SQLException {
+    public Post addPost(String title, String topic, String content, User author, String authorIp, String clientProvince) throws SQLException {
         requireActiveUser(author);
         String cleanTitle = TextUtils.trim(title);
         String cleanTopic = TextUtils.trim(topic);
-        String cleanRegion = TextUtils.trim(region);
         String cleanContent = TextUtils.trim(content);
+        String cleanRegion = resolveProvince(clientProvince);
+        String cleanAuthorIp = TextUtils.trim(authorIp);
+        if (cleanAuthorIp.length() > 45) {
+            cleanAuthorIp = cleanAuthorIp.substring(0, 45);
+        }
         if (cleanTitle.isEmpty() || cleanTitle.length() > 120) {
             throw new IllegalArgumentException("帖子标题需为 1-120 个字符");
         }
         if (cleanTopic.isEmpty()) {
             throw new IllegalArgumentException("请选择主题");
-        }
-        if (!ForumOptions.isProvince(cleanRegion)) {
-            throw new IllegalArgumentException("请选择省份");
         }
         if (cleanContent.isEmpty() || cleanContent.length() > 8000) {
             throw new IllegalArgumentException("正文需为 1-8000 个字符");
@@ -430,20 +431,21 @@ public class JdbcBbsRepository {
 
         try (Connection connection = DbUtil.getConnection();
              PreparedStatement prepared = connection.prepareStatement(
-                     "INSERT INTO posts(title, topic, region, content, author_id, pinned, deleted, like_score, dislike_score, favorite_count, comment_count, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, NOW(), NOW())",
+                     "INSERT INTO posts(title, topic, region, content, author_id, ip_address, pinned, deleted, like_score, dislike_score, favorite_count, comment_count, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, NOW(), NOW())",
                      Statement.RETURN_GENERATED_KEYS)) {
             prepared.setString(1, cleanTitle);
             prepared.setString(2, cleanTopic);
             prepared.setString(3, cleanRegion);
             prepared.setString(4, cleanContent);
             prepared.setLong(5, author.getId());
-            prepared.setInt(6, author.isAdmin() ? 1 : 0);
+            prepared.setString(6, cleanAuthorIp.isEmpty() ? null : cleanAuthorIp);
+            prepared.setInt(7, author.isAdmin() ? 1 : 0);
             prepared.executeUpdate();
             return findPost(readGeneratedId(prepared));
         }
     }
 
-    public void updatePost(long postId, String title, String topic, String region, String content, User user) throws SQLException {
+    public void updatePost(long postId, String title, String topic, String content, User user) throws SQLException {
         requireActiveUser(user);
         Post post = findPost(postId);
         if (post == null) {
@@ -454,7 +456,6 @@ public class JdbcBbsRepository {
         }
         String cleanTitle = TextUtils.trim(title);
         String cleanTopic = TextUtils.trim(topic);
-        String cleanRegion = TextUtils.trim(region);
         String cleanContent = TextUtils.trim(content);
         if (cleanTitle.isEmpty() || cleanTitle.length() > 120) {
             throw new IllegalArgumentException("帖子标题需为 1-120 个字符");
@@ -462,14 +463,11 @@ public class JdbcBbsRepository {
         if (cleanTopic.isEmpty()) {
             throw new IllegalArgumentException("请选择主题");
         }
-        if (!ForumOptions.isProvince(cleanRegion)) {
-            throw new IllegalArgumentException("请选择省份");
-        }
         if (cleanContent.isEmpty() || cleanContent.length() > 8000) {
             throw new IllegalArgumentException("正文需为 1-8000 个字符");
         }
-        executeUpdate("UPDATE posts SET title = ?, topic = ?, region = ?, content = ? WHERE id = ?",
-                cleanTitle, cleanTopic, cleanRegion, cleanContent, postId);
+        executeUpdate("UPDATE posts SET title = ?, topic = ?, content = ? WHERE id = ?",
+                cleanTitle, cleanTopic, cleanContent, postId);
     }
 
     public void deletePost(long postId, User user) throws SQLException {
@@ -975,10 +973,6 @@ public class JdbcBbsRepository {
             sql.append(" AND p.topic = ?");
             params.add(criteria.getTopic());
         }
-        if (!isBlank(criteria.getRegion())) {
-            sql.append(" AND p.region = ?");
-            params.add(criteria.getRegion());
-        }
         if (!isBlank(criteria.getKeyword())) {
             sql.append(" AND p.content LIKE ?");
             params.add("%" + criteria.getKeyword() + "%");
@@ -1083,11 +1077,12 @@ public class JdbcBbsRepository {
                 resultSet.getLong("id"),
                 resultSet.getString("title"),
                 resultSet.getString("topic"),
-                resultSet.getString("region"),
+                mapRegion(resultSet),
                 resultSet.getString("content"),
                 resultSet.getLong("author_id"),
                 resultSet.getString("author_username"),
                 resultSet.getString("author_role"),
+                resultSet.getString("ip_address"),
                 resultSet.getBoolean("pinned"),
                 resultSet.getBoolean("deleted"),
                 resultSet.getInt("like_score"),
@@ -1097,6 +1092,19 @@ public class JdbcBbsRepository {
                 toLocalDateTime(resultSet.getTimestamp("created_at")),
                 toLocalDateTime(resultSet.getTimestamp("updated_at"))
         );
+    }
+
+    private String mapRegion(ResultSet resultSet) throws SQLException {
+        String region = TextUtils.trim(resultSet.getString("region"));
+        String province = ForumOptions.normalizeProvince(region);
+        if (!province.isEmpty()) {
+            return province;
+        }
+        if (IpLocationUtil.LOCAL_REGION.equals(region) || IpLocationUtil.UNKNOWN_REGION.equals(region)) {
+            return region;
+        }
+        province = IpLocationUtil.resolveProvince(resultSet.getString("ip_address"));
+        return TextUtils.trim(province).isEmpty() ? IpLocationUtil.UNKNOWN_REGION : province;
     }
 
     private Comment mapComment(ResultSet resultSet) throws SQLException {
@@ -1168,15 +1176,20 @@ public class JdbcBbsRepository {
         }
     }
 
-    private void validateProvinceIfPresent(String province) {
-        String cleanProvince = TextUtils.trim(province);
-        if (!cleanProvince.isEmpty() && !ForumOptions.isProvince(cleanProvince)) {
-            throw new IllegalArgumentException("请选择省份");
-        }
-    }
-
     private String normalizePhone(String phone) {
         return TextUtils.trim(phone).replaceAll("\\s+", "");
+    }
+
+    private String resolveProvince(String province) {
+        String cleanProvince = TextUtils.trim(province);
+        String normalized = ForumOptions.normalizeProvince(cleanProvince);
+        if (!normalized.isEmpty()) {
+            return normalized;
+        }
+        if (IpLocationUtil.LOCAL_REGION.equals(cleanProvince) || IpLocationUtil.UNKNOWN_REGION.equals(cleanProvince)) {
+            return cleanProvince;
+        }
+        return IpLocationUtil.UNKNOWN_REGION;
     }
 
     private boolean isBlank(String text) {
