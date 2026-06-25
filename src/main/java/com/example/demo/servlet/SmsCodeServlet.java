@@ -29,6 +29,10 @@ public class SmsCodeServlet extends HttpServlet {
         try {
             BbsRepository repository = WebUtil.getRepository(getServletContext());
             String code = repository.createSmsCode(normalizedPhone, purpose);
+            if (isDemoSmsEnabled()) {
+                response.getWriter().write("{\"ok\":true,\"code\":\"" + code + "\",\"message\":\"演示验证码：" + code + "\"}");
+                return;
+            }
             AliyunSmsSender.sendCode(normalizedPhone, code, purpose);
             response.getWriter().write("{\"ok\":true,\"message\":\"验证码已发送，请查收短信\"}");
         } catch (IllegalArgumentException | SQLException e) {
@@ -42,5 +46,13 @@ public class SmsCodeServlet extends HttpServlet {
 
     private String json(String text) {
         return text == null ? "" : text.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private boolean isDemoSmsEnabled() {
+        String property = System.getProperty("bbs.sms.demo");
+        if (property == null || property.trim().isEmpty()) {
+            property = System.getenv("BBS_SMS_DEMO");
+        }
+        return "true".equalsIgnoreCase(property) || "1".equals(property);
     }
 }

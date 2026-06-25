@@ -14,6 +14,9 @@
     }
 
     function pageContext() {
+        if (typeof window.BBS_CONTEXT === "string") {
+            return window.BBS_CONTEXT;
+        }
         var path = window.location.pathname;
         var context = "";
         ["/register", "/login", "/password/reset", "/post/detail"].some(function (suffix) {
@@ -24,6 +27,39 @@
             return false;
         });
         return context;
+    }
+
+    var forcedLogoutShown = false;
+
+    function handleForcedLogout(data) {
+        if (!data || !data.banned) {
+            return false;
+        }
+        if (!forcedLogoutShown) {
+            forcedLogoutShown = true;
+            alert(data.message || "账号已被封禁，请联系管理员");
+        }
+        window.location.replace(data.redirect || pageContext() + "/login");
+        return true;
+    }
+
+    function checkSessionStatus() {
+        if (!window.BBS_LOGGED_IN || forcedLogoutShown) {
+            return;
+        }
+        fetch(pageContext() + "/session/status", {
+            method: "GET",
+            headers: {
+                "Accept": "application/json",
+                "X-Requested-With": "fetch"
+            },
+            credentials: "same-origin"
+        }).then(function (response) {
+            return response.json();
+        }).then(function (data) {
+            handleForcedLogout(data);
+        }).catch(function () {
+        });
     }
 
     function showActionMessage(message, ok) {
@@ -141,10 +177,14 @@
         fetch(pageContext() + "/sms-code", {
             method: "POST",
             headers: {"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
-            body: form.toString()
+            body: form.toString(),
+            credentials: "same-origin"
         }).then(function (response) {
             return response.json();
         }).then(function (data) {
+            if (handleForcedLogout(data)) {
+                return;
+            }
             if (result) {
                 result.textContent = data.message;
             }
@@ -182,10 +222,14 @@
                 "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
                 "X-Requested-With": "fetch"
             },
-            body: body.toString()
+            body: body.toString(),
+            credentials: "same-origin"
         }).then(function (response) {
             return response.json();
         }).then(function (data) {
+            if (handleForcedLogout(data)) {
+                return;
+            }
             showActionMessage(data.message, data.ok);
             if (data.ok) {
                 updatePostStats(data.post);
@@ -224,4 +268,9 @@
             }
         });
     });
+
+    if (window.BBS_LOGGED_IN) {
+        window.setTimeout(checkSessionStatus, 5000);
+        window.setInterval(checkSessionStatus, 15000);
+    }
 })();

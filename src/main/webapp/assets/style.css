@@ -149,6 +149,45 @@ h1 {
     gap: 10px;
 }
 
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.page-link {
+    min-width: 36px;
+    padding: 7px 11px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.page-link:hover {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    text-decoration: none;
+}
+
+.page-link.active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #ffffff;
+}
+
+.page-link.disabled {
+    color: var(--muted);
+    opacity: 0.55;
+    pointer-events: none;
+}
+
 .post-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 160px auto;

@@ -1,12 +1,45 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ page import="java.time.format.DateTimeFormatter,java.util.List,com.example.demo.model.Post,com.example.demo.model.PostSearchCriteria,com.example.demo.util.TextUtils,com.example.demo.util.ForumOptions" %>
+<%@ page import="java.time.format.DateTimeFormatter,java.net.URLEncoder,java.io.UnsupportedEncodingException,java.util.List,com.example.demo.model.Post,com.example.demo.model.PostSearchCriteria,com.example.demo.util.TextUtils,com.example.demo.util.ForumOptions" %>
+<%!
+    private String encodeQuery(String value) {
+        try {
+            return URLEncoder.encode(value == null ? "" : value, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            return "";
+        }
+    }
+%>
 <%
     List<Post> posts = (List<Post>) request.getAttribute("posts");
     List<String> topics = (List<String>) request.getAttribute("topics");
     PostSearchCriteria criteria = (PostSearchCriteria) request.getAttribute("criteria");
     Integer totalCount = (Integer) request.getAttribute("totalCount");
+    Integer currentPageValue = (Integer) request.getAttribute("currentPage");
+    Integer totalPagesValue = (Integer) request.getAttribute("totalPages");
+    int currentPage = currentPageValue == null ? 1 : currentPageValue;
+    int totalPages = totalPagesValue == null ? 1 : totalPagesValue;
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     String orderBy = criteria == null ? "" : TextUtils.trim(criteria.getOrderBy());
+    StringBuilder pageQuery = new StringBuilder(request.getContextPath()).append("/posts?");
+    if (!TextUtils.trim(criteria.getTopic()).isEmpty()) {
+        pageQuery.append("topic=").append(encodeQuery(criteria.getTopic())).append("&");
+    }
+    if (!TextUtils.trim(criteria.getKeyword()).isEmpty()) {
+        pageQuery.append("keyword=").append(encodeQuery(criteria.getKeyword())).append("&");
+    }
+    if (criteria.getDays() > 0) {
+        pageQuery.append("days=").append(criteria.getDays()).append("&");
+    }
+    if (criteria.getMinLikes() > 0) {
+        pageQuery.append("minLikes=").append(criteria.getMinLikes()).append("&");
+    }
+    if (criteria.getMinFavorites() > 0) {
+        pageQuery.append("minFavorites=").append(criteria.getMinFavorites()).append("&");
+    }
+    if (!orderBy.isEmpty()) {
+        pageQuery.append("orderBy=").append(encodeQuery(orderBy)).append("&");
+    }
+    String pageUrlPrefix = pageQuery.append("page=").toString();
 %>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -98,6 +131,27 @@
                     </article>
                 <% } %>
             </div>
+            <% if (totalPages > 1) { %>
+                <nav class="pagination" aria-label="留言分页">
+                    <% if (currentPage > 1) { %>
+                        <a class="page-link" href="<%= pageUrlPrefix %><%= currentPage - 1 %>">上一页</a>
+                    <% } else { %>
+                        <span class="page-link disabled">上一页</span>
+                    <% } %>
+                    <% for (int i = 1; i <= totalPages; i++) { %>
+                        <% if (i == currentPage) { %>
+                            <span class="page-link active"><%= i %></span>
+                        <% } else { %>
+                            <a class="page-link" href="<%= pageUrlPrefix %><%= i %>"><%= i %></a>
+                        <% } %>
+                    <% } %>
+                    <% if (currentPage < totalPages) { %>
+                        <a class="page-link" href="<%= pageUrlPrefix %><%= currentPage + 1 %>">下一页</a>
+                    <% } else { %>
+                        <span class="page-link disabled">下一页</span>
+                    <% } %>
+                </nav>
+            <% } %>
         <% } %>
     </section>
 </main>

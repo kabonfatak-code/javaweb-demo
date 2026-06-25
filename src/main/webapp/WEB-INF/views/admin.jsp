@@ -19,7 +19,6 @@
     <section class="page-heading">
         <div>
             <h1>管理员后台</h1>
-            <p>管理员不能举报，也不能封禁自己的账号。</p>
         </div>
     </section>
 

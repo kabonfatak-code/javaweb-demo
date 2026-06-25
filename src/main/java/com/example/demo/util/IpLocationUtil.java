@@ -1,14 +1,13 @@
 package com.example.demo.util;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
-import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -22,9 +21,6 @@ public final class IpLocationUtil {
     private static final String DEFAULT_API = "http://ip-api.com/json/%s?fields=status,country,regionName,message&lang=zh-CN";
     private static final Pattern JSON_VALUE = Pattern.compile("\"%s\"\\s*:\\s*\"([^\"]*)\"");
     private static final Map<String, String> CACHE = new ConcurrentHashMap<>();
-    private static final HttpClient CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofMillis(TIMEOUT_MS))
-            .build();
 
     private IpLocationUtil() {
     }
@@ -57,27 +53,45 @@ public final class IpLocationUtil {
             api = DEFAULT_API;
         }
 
-        String encodedIp = URLEncoder.encode(TextUtils.trim(ip), StandardCharsets.UTF_8);
+        String encodedIp = urlEncode(TextUtils.trim(ip));
         String url = api.contains("%s") ? String.format(api, encodedIp) : api;
         if (encodedIp.isEmpty()) {
             url = url.replace("/%s", "").replace("%s", "");
         }
 
         try {
-            HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-                    .timeout(Duration.ofMillis(timeoutMs()))
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
-            HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setConnectTimeout(timeoutMs());
+            connection.setReadTimeout(timeoutMs());
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Accept", "application/json");
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) {
                 return "";
             }
-            return provinceFromJson(response.body());
-        } catch (IOException | InterruptedException | IllegalArgumentException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
+            return provinceFromJson(readAll(connection.getInputStream()));
+        } catch (IOException | IllegalArgumentException e) {
+            return "";
+        }
+    }
+
+    private static String readAll(InputStream stream) throws IOException {
+        if (stream == null) {
+            return "";
+        }
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = stream.read(buffer)) != -1) {
+            output.write(buffer, 0, length);
+        }
+        return new String(output.toByteArray(), StandardCharsets.UTF_8);
+    }
+
+    private static String urlEncode(String value) {
+        try {
+            return URLEncoder.encode(value == null ? "" : value, "UTF-8");
+        } catch (IOException e) {
             return "";
         }
     }

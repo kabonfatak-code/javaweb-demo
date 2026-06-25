@@ -18,7 +18,6 @@
     <section class="page-heading">
         <div>
             <h1>信息通知</h1>
-            <p>点击通知可跳转到对应留言或评论。</p>
         </div>
     </section>
     <% if (notifications == null || notifications.isEmpty()) { %>

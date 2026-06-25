@@ -139,6 +139,5 @@
     <a class="back-link" href="<%= ctx %>/posts">返回主页</a>
     <div class="inline-message" id="actionMessage" aria-live="polite"></div>
 </main>
-<script src="<%= ctx %>/assets/app.js?v=20260624-live-stats"></script>
 </body>
 </html>
