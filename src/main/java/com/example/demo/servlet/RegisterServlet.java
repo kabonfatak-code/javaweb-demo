@@ -1,6 +1,7 @@
 package com.example.demo.servlet;
 
 import com.example.demo.repository.BbsRepository;
+import com.example.demo.sms.SmsVerificationUtil;
 import com.example.demo.util.TextUtils;
 import com.example.demo.util.WebUtil;
 
@@ -32,7 +33,8 @@ public class RegisterServlet extends HttpServlet {
 
         BbsRepository repository = WebUtil.getRepository(getServletContext());
         try {
-            repository.register(username, password, phone, smsCode);
+            SmsVerificationUtil.verify(request, phone, smsCode, "REGISTER");
+            repository.register(username, password, phone);
             WebUtil.setFlash(request, "注册成功，请登录");
             response.sendRedirect(request.getContextPath() + "/login");
         } catch (IllegalArgumentException | SQLException e) {

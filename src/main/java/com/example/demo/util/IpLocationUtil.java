@@ -17,7 +17,7 @@ public final class IpLocationUtil {
     public static final String LOCAL_REGION = "本地";
     public static final String UNKNOWN_REGION = "未知";
 
-    private static final int TIMEOUT_MS = 1500;
+    private static final int TIMEOUT_MS = 800;
     private static final String DEFAULT_API = "http://ip-api.com/json/%s?fields=status,country,regionName,message&lang=zh-CN";
     private static final Pattern JSON_VALUE = Pattern.compile("\"%s\"\\s*:\\s*\"([^\"]*)\"");
     private static final Map<String, String> CACHE = new ConcurrentHashMap<>();
@@ -36,8 +36,7 @@ public final class IpLocationUtil {
     private static String lookupProvince(String ip) {
         try {
             if (isLocalOrPrivate(ip)) {
-                String publicProvince = lookupByApi("");
-                return publicProvince.isEmpty() ? LOCAL_REGION : publicProvince;
+                return LOCAL_REGION;
             }
 
             String province = lookupByApi(ip);
@@ -48,6 +47,9 @@ public final class IpLocationUtil {
     }
 
     private static String lookupByApi(String ip) {
+        if (!locationLookupEnabled()) {
+            return "";
+        }
         String api = System.getProperty("bbs.ip.location.api");
         if (api == null || api.trim().isEmpty()) {
             api = DEFAULT_API;
@@ -184,5 +186,15 @@ public final class IpLocationUtil {
         } catch (NumberFormatException e) {
             return TIMEOUT_MS;
         }
+    }
+
+    private static boolean locationLookupEnabled() {
+        String configured = System.getProperty("bbs.ip.location.enabled");
+        if (configured == null || configured.trim().isEmpty()) {
+            configured = System.getenv("BBS_IP_LOCATION_ENABLED");
+        }
+        return configured == null || configured.trim().isEmpty()
+                || "true".equalsIgnoreCase(configured)
+                || "1".equals(configured.trim());
     }
 }

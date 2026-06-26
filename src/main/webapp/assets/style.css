@@ -634,19 +634,67 @@ textarea:focus {
     font-size: 14px;
 }
 
+.reply-tag,
+.comment-region {
+    border-radius: 6px;
+    background: #f1f5f9;
+    padding: 1px 6px;
+    color: #475569;
+    font-weight: 700;
+}
+
+.comment-ip {
+    color: var(--muted);
+}
+
 .comment-content {
     margin: 10px 0;
     overflow-wrap: anywhere;
 }
 
-.comment-edit {
+.reply-list-toggle {
+    margin-top: 10px;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--primary);
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.reply-list-toggle:hover {
+    text-decoration: underline;
+}
+
+.reply-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+    padding-left: 18px;
+    border-left: 3px solid #e5e7eb;
+}
+
+.reply-list.collapsed {
+    display: none;
+}
+
+.reply-comment {
+    background: #f8fafc;
+}
+
+.comment-edit,
+.comment-reply {
     margin-top: 12px;
     gap: 8px;
 }
 
-.comment-edit-fields {
+.comment-edit-fields,
+.comment-reply-fields {
     display: grid;
     gap: 8px;
+    width: min(560px, 100%);
 }
 
 .compact-buttons {
@@ -663,7 +711,8 @@ textarea:focus {
 }
 
 .compact-buttons .button,
-.comment-edit .button {
+.comment-edit .button,
+.comment-reply .button {
     min-height: 28px;
     padding: 3px 9px;
     border-radius: 6px;
@@ -672,7 +721,8 @@ textarea:focus {
 }
 
 .comment-edit .button-row,
-.comment-edit-actions {
+.comment-edit-actions,
+.comment-reply .button-row {
     justify-content: flex-start;
     gap: 8px;
 }
@@ -899,6 +949,7 @@ tr form {
     .report-form,
     .report-fields,
     .comment-edit .button-row,
+    .comment-reply .button-row,
     .post-action-buttons {
         align-items: center;
         flex-direction: row;

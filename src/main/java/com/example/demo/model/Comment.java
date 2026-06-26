@@ -6,8 +6,12 @@ import java.time.LocalDateTime;
 public class Comment implements Serializable {
     private long id;
     private long postId;
+    private long parentCommentId;
     private long authorId;
     private String authorUsername;
+    private String parentAuthorUsername;
+    private String ipAddress;
+    private String region;
     private String content;
     private int likeScore;
     private int dislikeScore;
@@ -18,12 +22,17 @@ public class Comment implements Serializable {
     public Comment() {
     }
 
-    public Comment(long id, long postId, long authorId, String authorUsername, String content,
+    public Comment(long id, long postId, long parentCommentId, long authorId, String authorUsername,
+                   String parentAuthorUsername, String ipAddress, String region, String content,
                    int likeScore, int dislikeScore, boolean deleted, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.postId = postId;
+        this.parentCommentId = parentCommentId;
         this.authorId = authorId;
         this.authorUsername = authorUsername;
+        this.parentAuthorUsername = parentAuthorUsername;
+        this.ipAddress = ipAddress;
+        this.region = region;
         this.content = content;
         this.likeScore = likeScore;
         this.dislikeScore = dislikeScore;
@@ -48,6 +57,14 @@ public class Comment implements Serializable {
         this.postId = postId;
     }
 
+    public long getParentCommentId() {
+        return parentCommentId;
+    }
+
+    public void setParentCommentId(long parentCommentId) {
+        this.parentCommentId = parentCommentId;
+    }
+
     public long getAuthorId() {
         return authorId;
     }
@@ -62,6 +79,30 @@ public class Comment implements Serializable {
 
     public void setAuthorUsername(String authorUsername) {
         this.authorUsername = authorUsername;
+    }
+
+    public String getParentAuthorUsername() {
+        return parentAuthorUsername;
+    }
+
+    public void setParentAuthorUsername(String parentAuthorUsername) {
+        this.parentAuthorUsername = parentAuthorUsername;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
     }
 
     public String getContent() {

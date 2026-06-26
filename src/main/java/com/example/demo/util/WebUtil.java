@@ -95,7 +95,7 @@ public final class WebUtil {
             return forwardedIp;
         }
         String remoteAddr = request.getRemoteAddr();
-        return remoteAddr == null ? "" : remoteAddr;
+        return normalizeIp(remoteAddr == null ? "" : remoteAddr);
     }
 
     public static String getClientProvince(HttpServletRequest request) {
@@ -118,12 +118,14 @@ public final class WebUtil {
         if (text == null) {
             return "";
         }
-        String value = text.trim();
-        int commaIndex = value.indexOf(',');
-        if (commaIndex >= 0) {
-            value = value.substring(0, commaIndex).trim();
+        String[] values = text.split(",");
+        for (String rawValue : values) {
+            String value = normalizeIp(rawValue);
+            if (!value.isEmpty() && !"unknown".equalsIgnoreCase(value)) {
+                return value;
+            }
         }
-        return value;
+        return "";
     }
 
     private static String forwardedIp(String text) {
@@ -147,11 +149,19 @@ public final class WebUtil {
                     if (portIndex > 0 && value.indexOf(':') == portIndex) {
                         value = value.substring(0, portIndex);
                     }
-                    return value;
+                    return normalizeIp(value);
                 }
             }
         }
         return "";
+    }
+
+    private static String normalizeIp(String ip) {
+        String value = ip == null ? "" : ip.trim();
+        if ("0:0:0:0:0:0:0:1".equals(value) || "::1".equals(value)) {
+            return "127.0.0.1";
+        }
+        return value;
     }
 
 }

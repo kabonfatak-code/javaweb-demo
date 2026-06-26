@@ -48,4 +48,47 @@ admin / admin123
            connectionTimeout="20000" />
 ```
 
-MySQL 建议 `max_connections >= 100`。真实短信验证码需要接入阿里云短信、腾讯云短信等平台，把 `SmsCodeServlet` 中的模拟返回替换为短信平台发送接口即可。
+MySQL 建议 `max_connections >= 100`。
+
+## 阿里云短信
+
+正式服务器默认调用阿里云短信验证码服务；不要开启演示模式。需要在 Tomcat VM options 或服务器环境变量中配置：
+
+```text
+-Dbbs.sms.aliyun.accessKeyId=你的AccessKeyId
+-Dbbs.sms.aliyun.accessKeySecret=你的AccessKeySecret
+-Dbbs.sms.aliyun.signName=你的短信签名
+-Dbbs.sms.aliyun.templateCode=你的模板Code
+```
+
+也支持环境变量：
+
+```text
+BBS_SMS_ALIYUN_ACCESS_KEY_ID
+BBS_SMS_ALIYUN_ACCESS_KEY_SECRET
+BBS_SMS_ALIYUN_SIGN_NAME
+BBS_SMS_ALIYUN_TEMPLATE_CODE
+```
+
+本地调试时可以开启演示验证码，不会调用阿里云：
+
+```text
+-Dbbs.sms.demo=true
+```
+
+## 真实 IP 和地区
+
+如果 Tomcat 前面有 Nginx、负载均衡或 CDN，需要转发真实 IP：
+
+```nginx
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header Host $host;
+```
+
+公网 IP 地区解析默认超时较短；如服务器访问定位服务不稳定，可配置：
+
+```text
+-Dbbs.ip.location.timeout.ms=800
+-Dbbs.ip.location.enabled=true
+```

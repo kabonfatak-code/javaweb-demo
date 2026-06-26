@@ -2,6 +2,7 @@ package com.example.demo.servlet;
 
 import com.example.demo.model.User;
 import com.example.demo.repository.BbsRepository;
+import com.example.demo.sms.SmsVerificationUtil;
 import com.example.demo.util.TextUtils;
 import com.example.demo.util.WebUtil;
 
@@ -28,13 +29,15 @@ public class LoginServlet extends HttpServlet {
             BbsRepository repository = WebUtil.getRepository(getServletContext());
             User user;
             if ("sms".equals(mode)) {
-                user = repository.authenticateBySms(request.getParameter("phone"), request.getParameter("smsCode"));
+                String phone = request.getParameter("phone");
+                SmsVerificationUtil.verify(request, phone, request.getParameter("smsCode"), "LOGIN");
+                user = repository.authenticateByPhone(phone);
             } else {
                 user = repository.authenticateByPassword(request.getParameter("username"), request.getParameter("password"));
             }
 
             if (user == null) {
-                request.setAttribute("error", "用户名或密码错误");
+                request.setAttribute("error", "sms".equals(mode) ? "该手机号尚未注册" : "用户名或密码错误");
                 request.setAttribute("username", TextUtils.trim(request.getParameter("username")));
                 request.setAttribute("phone", TextUtils.trim(request.getParameter("phone")));
                 request.setAttribute("mode", mode);

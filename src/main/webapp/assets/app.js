@@ -29,6 +29,25 @@
         return context;
     }
 
+    function startSmsCountdown(button, seconds) {
+        var originalText = button.getAttribute("data-original-text") || button.textContent;
+        button.setAttribute("data-original-text", originalText);
+        button.disabled = true;
+        var remaining = seconds;
+        button.textContent = remaining + " 秒后重试";
+        window.clearInterval(button._smsTimer);
+        button._smsTimer = window.setInterval(function () {
+            remaining -= 1;
+            if (remaining <= 0) {
+                window.clearInterval(button._smsTimer);
+                button.textContent = originalText;
+                button.disabled = false;
+                return;
+            }
+            button.textContent = remaining + " 秒后重试";
+        }, 1000);
+    }
+
     var forcedLogoutShown = false;
 
     function handleForcedLogout(data) {
@@ -107,6 +126,17 @@
     }
 
     document.addEventListener("click", function (event) {
+        var replyListButton = event.target.closest("[data-reply-list-toggle]");
+        if (replyListButton) {
+            event.preventDefault();
+            var list = document.getElementById(replyListButton.getAttribute("data-target"));
+            if (list) {
+                var willOpen = list.classList.contains("collapsed");
+                setReplyListOpen(replyListButton, list, willOpen);
+            }
+            return;
+        }
+
         var disclosureButton = event.target.closest("[data-disclosure-toggle]");
         if (disclosureButton) {
             event.preventDefault();
@@ -188,11 +218,15 @@
             if (result) {
                 result.textContent = data.message;
             }
+            if (data.ok) {
+                startSmsCountdown(button, 60);
+            } else {
+                button.disabled = false;
+            }
         }).catch(function () {
             if (result) {
                 result.textContent = "验证码获取失败";
             }
-        }).finally(function () {
             button.disabled = false;
         });
     });
@@ -258,6 +292,16 @@
                         editFields.classList.add("hidden");
                         form.classList.remove("is-expanded");
                     }
+                } else if (action === "add") {
+                    var addTextarea = form.querySelector("textarea[name='content']");
+                    if (addTextarea) {
+                        addTextarea.value = "";
+                    }
+                    var addFields = form.querySelector("[data-disclosure-fields]");
+                    if (addFields) {
+                        addFields.classList.add("hidden");
+                        form.classList.remove("is-expanded");
+                    }
                 }
             }
         }).catch(function () {
@@ -269,8 +313,38 @@
         });
     });
 
+    function setReplyListOpen(button, list, open) {
+        list.classList.toggle("collapsed", !open);
+        if (button) {
+            button.setAttribute("aria-expanded", open ? "true" : "false");
+            button.textContent = open
+                ? button.getAttribute("data-open-text")
+                : button.getAttribute("data-closed-text");
+        }
+    }
+
+    function expandReplyListForHash() {
+        if (!window.location.hash) {
+            return;
+        }
+        var target = document.getElementById(window.location.hash.slice(1));
+        if (!target) {
+            return;
+        }
+        var list = target.closest("[data-reply-list]");
+        if (!list) {
+            return;
+        }
+        var button = document.querySelector("[data-reply-list-toggle][data-target='" + list.id + "']");
+        setReplyListOpen(button, list, true);
+        window.setTimeout(function () {
+            target.scrollIntoView({block: "center"});
+        }, 0);
+    }
+
     if (window.BBS_LOGGED_IN) {
         window.setTimeout(checkSessionStatus, 5000);
         window.setInterval(checkSessionStatus, 15000);
     }
+    expandReplyListForHash();
 })();

@@ -1,6 +1,6 @@
 package com.example.demo.servlet;
 
-import com.example.demo.repository.BbsRepository;
+import com.example.demo.sms.SmsVerificationUtil;
 import com.example.demo.util.TextUtils;
 import com.example.demo.util.WebUtil;
 
@@ -28,7 +28,8 @@ public class PasswordResetServlet extends HttpServlet {
 
         request.setAttribute("phone", phone);
         try {
-            WebUtil.getRepository(getServletContext()).resetPassword(phone, smsCode, password);
+            SmsVerificationUtil.verify(request, phone, smsCode, "RESET");
+            WebUtil.getRepository(getServletContext()).resetPassword(phone, password);
             WebUtil.setFlash(request, "密码已重置，请登录");
             response.sendRedirect(request.getContextPath() + "/login");
         } catch (IllegalArgumentException | SQLException e) {

@@ -33,6 +33,7 @@ public class CommentServlet extends HttpServlet {
         String action = TextUtils.trim(request.getParameter("action"));
         long postId = WebUtil.parseLong(request.getParameter("postId"), -1L);
         long commentId = WebUtil.parseLong(request.getParameter("commentId"), -1L);
+        long parentCommentId = WebUtil.parseLong(request.getParameter("parentCommentId"), 0L);
         String anchor = "#comments";
         String message = "操作已完成";
         Post freshPost = null;
@@ -41,9 +42,16 @@ public class CommentServlet extends HttpServlet {
         try {
             BbsRepository repository = WebUtil.getRepository(getServletContext());
             if ("add".equals(action)) {
-                Comment comment = repository.addComment(user, postId, request.getParameter("content"));
+                Comment comment = repository.addComment(
+                        user,
+                        postId,
+                        parentCommentId,
+                        request.getParameter("content"),
+                        WebUtil.getClientIp(request),
+                        WebUtil.getClientProvince(request)
+                );
                 anchor = "#comment-" + comment.getId();
-                message = "评论已发表，刷新后可见";
+                message = parentCommentId > 0 ? "回复已发表，刷新后可见" : "评论已发表，刷新后可见";
                 freshComment = comment;
             } else if ("edit".equals(action)) {
                 repository.updateComment(user, commentId, request.getParameter("content"));

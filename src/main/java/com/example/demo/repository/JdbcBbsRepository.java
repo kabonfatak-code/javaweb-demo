@@ -12,7 +12,6 @@ import com.example.demo.util.IpLocationUtil;
 import com.example.demo.util.PasswordUtils;
 import com.example.demo.util.TextUtils;
 
-import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,9 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class JdbcBbsRepository {
-    private static final int SMS_EXPIRE_MINUTES = 10;
-    private final SecureRandom random = new SecureRandom();
-
     public JdbcBbsRepository() {
         try {
             initializeSchema();
@@ -75,7 +71,10 @@ public class JdbcBbsRepository {
             statement.execute("CREATE TABLE IF NOT EXISTS comments ("
                     + "id BIGINT PRIMARY KEY AUTO_INCREMENT,"
                     + "post_id BIGINT NOT NULL,"
+                    + "parent_comment_id BIGINT NULL,"
                     + "author_id BIGINT NOT NULL,"
+                    + "ip_address VARCHAR(45) NULL,"
+                    + "region VARCHAR(30) NULL,"
                     + "content TEXT NOT NULL,"
                     + "deleted TINYINT(1) NOT NULL DEFAULT 0,"
                     + "like_score INT NOT NULL DEFAULT 0,"
@@ -83,6 +82,7 @@ public class JdbcBbsRepository {
                     + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                     + "updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
                     + "INDEX idx_comments_post(post_id, created_at),"
+                    + "INDEX idx_comments_parent(parent_comment_id),"
                     + "CONSTRAINT fk_comments_post FOREIGN KEY(post_id) REFERENCES posts(id),"
                     + "CONSTRAINT fk_comments_author FOREIGN KEY(author_id) REFERENCES users(id)"
                     + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
@@ -159,21 +159,13 @@ public class JdbcBbsRepository {
                     + "CONSTRAINT fk_notifications_actor FOREIGN KEY(actor_id) REFERENCES users(id)"
                     + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-            statement.execute("CREATE TABLE IF NOT EXISTS sms_codes ("
-                    + "id BIGINT PRIMARY KEY AUTO_INCREMENT,"
-                    + "phone VARCHAR(20) NOT NULL,"
-                    + "purpose VARCHAR(20) NOT NULL,"
-                    + "code VARCHAR(8) NOT NULL,"
-                    + "used TINYINT(1) NOT NULL DEFAULT 0,"
-                    + "expires_at TIMESTAMP NOT NULL,"
-                    + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "INDEX idx_sms_lookup(phone, purpose, code, used, expires_at)"
-                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
             ensureColumn(connection, "users", "province", "ALTER TABLE users ADD COLUMN province VARCHAR(20) NULL AFTER phone");
             ensureColumn(connection, "users", "banned_until", "ALTER TABLE users ADD COLUMN banned_until TIMESTAMP NULL AFTER banned");
             ensureColumn(connection, "users", "register_time", "ALTER TABLE users ADD COLUMN register_time TIMESTAMP NULL AFTER created_at");
             ensureColumn(connection, "posts", "ip_address", "ALTER TABLE posts ADD COLUMN ip_address VARCHAR(45) NULL AFTER author_id");
+            ensureColumn(connection, "comments", "parent_comment_id", "ALTER TABLE comments ADD COLUMN parent_comment_id BIGINT NULL AFTER post_id");
+            ensureColumn(connection, "comments", "ip_address", "ALTER TABLE comments ADD COLUMN ip_address VARCHAR(45) NULL AFTER author_id");
+            ensureColumn(connection, "comments", "region", "ALTER TABLE comments ADD COLUMN region VARCHAR(30) NULL AFTER ip_address");
             executeUpdate(connection, "UPDATE users SET register_time = created_at WHERE register_time IS NULL");
             executeUpdate(connection, "UPDATE posts SET region = ? WHERE region IS NULL OR region = '' OR region = 'ip' OR region = '地区' OR region = '全国'",
                     IpLocationUtil.UNKNOWN_REGION);
@@ -192,26 +184,6 @@ public class JdbcBbsRepository {
         }
     }
 
-    public String createSmsCode(String phone, String purpose) throws SQLException {
-        String normalizedPhone = normalizePhone(phone);
-        if (normalizedPhone.isEmpty()) {
-            throw new IllegalArgumentException("请输入电话");
-        }
-        validatePhone(normalizedPhone);
-
-        String code = String.format("%06d", random.nextInt(1000000));
-        try (Connection connection = DbUtil.getConnection();
-             PreparedStatement prepared = connection.prepareStatement(
-                     "INSERT INTO sms_codes(phone, purpose, code, used, expires_at, created_at) VALUES (?, ?, ?, 0, DATE_ADD(NOW(), INTERVAL ? MINUTE), NOW())")) {
-            prepared.setString(1, normalizedPhone);
-            prepared.setString(2, purpose);
-            prepared.setString(3, code);
-            prepared.setInt(4, SMS_EXPIRE_MINUTES);
-            prepared.executeUpdate();
-        }
-        return code;
-    }
-
     private void ensureColumn(Connection connection, String tableName, String columnName, String alterSql) throws SQLException {
         try (PreparedStatement prepared = connection.prepareStatement(
                 "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?")) {
@@ -228,7 +200,7 @@ public class JdbcBbsRepository {
         }
     }
 
-    public User register(String username, String password, String phone, String smsCode) throws SQLException {
+    public User register(String username, String password, String phone) throws SQLException {
         String normalizedUsername = TextUtils.trim(username);
         String normalizedPhone = normalizePhone(phone);
         validateUsername(normalizedUsername);
@@ -244,7 +216,6 @@ public class JdbcBbsRepository {
                 if (exists(connection, "SELECT 1 FROM users WHERE phone = ?", normalizedPhone)) {
                     throw new IllegalArgumentException("电话已注册");
                 }
-                verifySmsCode(connection, normalizedPhone, "REGISTER", smsCode);
 
                 try (PreparedStatement prepared = connection.prepareStatement(
                         "INSERT INTO users(username, password_hash, phone, province, role, banned, banned_until, history_enabled, created_at, register_time) VALUES (?, ?, ?, ?, ?, 0, NULL, 1, NOW(), NOW())",
@@ -278,40 +249,24 @@ public class JdbcBbsRepository {
         }
     }
 
-    public User authenticateBySms(String phone, String smsCode) throws SQLException {
+    public User authenticateByPhone(String phone) throws SQLException {
         String normalizedPhone = normalizePhone(phone);
+        validatePhone(normalizedPhone);
         try (Connection connection = DbUtil.getConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                verifySmsCode(connection, normalizedPhone, "LOGIN", smsCode);
-                User user = findUserByPhone(connection, normalizedPhone);
-                connection.commit();
-                return user;
-            } catch (RuntimeException | SQLException e) {
-                connection.rollback();
-                throw e;
-            }
+            return findUserByPhone(connection, normalizedPhone);
         }
     }
 
-    public void resetPassword(String phone, String smsCode, String newPassword) throws SQLException {
+    public void resetPassword(String phone, String newPassword) throws SQLException {
         String normalizedPhone = normalizePhone(phone);
+        validatePhone(normalizedPhone);
         validatePassword(newPassword);
-        try (Connection connection = DbUtil.getConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                verifySmsCode(connection, normalizedPhone, "RESET", smsCode);
-                try (PreparedStatement prepared = connection.prepareStatement("UPDATE users SET password_hash = ? WHERE phone = ?")) {
-                    prepared.setString(1, PasswordUtils.sha256(newPassword));
-                    prepared.setString(2, normalizedPhone);
-                    if (prepared.executeUpdate() == 0) {
-                        throw new IllegalArgumentException("该电话未注册");
-                    }
-                }
-                connection.commit();
-            } catch (RuntimeException | SQLException e) {
-                connection.rollback();
-                throw e;
+        try (Connection connection = DbUtil.getConnection();
+             PreparedStatement prepared = connection.prepareStatement("UPDATE users SET password_hash = ? WHERE phone = ?")) {
+            prepared.setString(1, PasswordUtils.sha256(newPassword));
+            prepared.setString(2, normalizedPhone);
+            if (prepared.executeUpdate() == 0) {
+                throw new IllegalArgumentException("该电话未注册");
             }
         }
     }
@@ -633,13 +588,26 @@ public class JdbcBbsRepository {
                 user.getId(), postId, TextUtils.trim(reason), weight);
     }
 
-    public Comment addComment(User user, long postId, String content) throws SQLException {
+    public Comment addComment(User user, long postId, long parentCommentId, String content,
+                              String authorIp, String clientProvince) throws SQLException {
         requireActiveUser(user);
         Post post = findPost(postId);
         if (post == null) {
             throw new IllegalArgumentException("帖子不存在");
         }
+        Comment parentComment = null;
+        if (parentCommentId > 0) {
+            parentComment = findComment(parentCommentId);
+            if (parentComment == null || parentComment.getPostId() != postId) {
+                throw new IllegalArgumentException("回复的评论不存在");
+            }
+        }
         String cleanContent = TextUtils.trim(content);
+        String cleanRegion = resolveProvince(clientProvince);
+        String cleanAuthorIp = TextUtils.trim(authorIp);
+        if (cleanAuthorIp.length() > 45) {
+            cleanAuthorIp = cleanAuthorIp.substring(0, 45);
+        }
         if (cleanContent.isEmpty() || cleanContent.length() > 2000) {
             throw new IllegalArgumentException("评论需为 1-2000 个字符");
         }
@@ -647,15 +615,26 @@ public class JdbcBbsRepository {
         try (Connection connection = DbUtil.getConnection()) {
             connection.setAutoCommit(false);
             try (PreparedStatement prepared = connection.prepareStatement(
-                    "INSERT INTO comments(post_id, author_id, content, deleted, like_score, dislike_score, created_at, updated_at) VALUES (?, ?, ?, 0, 0, 0, NOW(), NOW())",
+                    "INSERT INTO comments(post_id, parent_comment_id, author_id, ip_address, region, content, deleted, like_score, dislike_score, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, NOW(), NOW())",
                     Statement.RETURN_GENERATED_KEYS)) {
                 prepared.setLong(1, postId);
-                prepared.setLong(2, user.getId());
-                prepared.setString(3, cleanContent);
+                if (parentCommentId > 0) {
+                    prepared.setLong(2, parentCommentId);
+                } else {
+                    prepared.setObject(2, null);
+                }
+                prepared.setLong(3, user.getId());
+                prepared.setString(4, cleanAuthorIp.isEmpty() ? null : cleanAuthorIp);
+                prepared.setString(5, cleanRegion);
+                prepared.setString(6, cleanContent);
                 prepared.executeUpdate();
                 long commentId = readGeneratedId(prepared);
                 executeUpdate(connection, "UPDATE posts SET comment_count = comment_count + 1 WHERE id = ?", postId);
                 notifyPostOwner(connection, post, user, "COMMENT", user.getUsername() + " 评论了你的帖子", commentId);
+                if (parentComment != null && parentComment.getAuthorId() != user.getId()
+                        && parentComment.getAuthorId() != post.getAuthorId()) {
+                    notifyCommentOwner(connection, parentComment, user, postId, commentId);
+                }
                 connection.commit();
                 return findComment(commentId);
             } catch (RuntimeException | SQLException e) {
@@ -667,7 +646,10 @@ public class JdbcBbsRepository {
 
     public List<Comment> findComments(long postId) throws SQLException {
         List<Comment> comments = new ArrayList<>();
-        String sql = "SELECT c.*, u.username AS author_username FROM comments c JOIN users u ON c.author_id = u.id "
+        String sql = "SELECT c.*, u.username AS author_username, parent_user.username AS parent_author_username "
+                + "FROM comments c JOIN users u ON c.author_id = u.id "
+                + "LEFT JOIN comments parent_comment ON c.parent_comment_id = parent_comment.id "
+                + "LEFT JOIN users parent_user ON parent_comment.author_id = parent_user.id "
                 + "WHERE c.post_id = ? AND c.deleted = 0 ORDER BY c.created_at ASC";
         try (Connection connection = DbUtil.getConnection();
              PreparedStatement prepared = connection.prepareStatement(sql)) {
@@ -682,7 +664,11 @@ public class JdbcBbsRepository {
     }
 
     public Comment findComment(long commentId) throws SQLException {
-        String sql = "SELECT c.*, u.username AS author_username FROM comments c JOIN users u ON c.author_id = u.id WHERE c.id = ? AND c.deleted = 0";
+        String sql = "SELECT c.*, u.username AS author_username, parent_user.username AS parent_author_username "
+                + "FROM comments c JOIN users u ON c.author_id = u.id "
+                + "LEFT JOIN comments parent_comment ON c.parent_comment_id = parent_comment.id "
+                + "LEFT JOIN users parent_user ON parent_comment.author_id = parent_user.id "
+                + "WHERE c.id = ? AND c.deleted = 0";
         try (Connection connection = DbUtil.getConnection();
              PreparedStatement prepared = connection.prepareStatement(sql)) {
             prepared.setLong(1, commentId);
@@ -945,6 +931,11 @@ public class JdbcBbsRepository {
                 post.getAuthorId(), actor.getId(), post.getId(), commentId > 0 ? commentId : null, type, message);
     }
 
+    private void notifyCommentOwner(Connection connection, Comment parentComment, User actor, long postId, long commentId) throws SQLException {
+        executeUpdate(connection, "INSERT INTO notifications(recipient_id, actor_id, post_id, comment_id, type, message, read_flag, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, NOW())",
+                parentComment.getAuthorId(), actor.getId(), postId, commentId, "REPLY", actor.getUsername() + " 回复了你的评论");
+    }
+
     private List<Post> findPostList(String sql, long userId) throws SQLException {
         List<Post> posts = new ArrayList<>();
         try (Connection connection = DbUtil.getConnection();
@@ -1027,26 +1018,6 @@ public class JdbcBbsRepository {
         }
     }
 
-    private void verifySmsCode(Connection connection, String phone, String purpose, String code) throws SQLException {
-        String cleanCode = TextUtils.trim(code);
-        Long codeId = null;
-        try (PreparedStatement prepared = connection.prepareStatement(
-                "SELECT id FROM sms_codes WHERE phone = ? AND purpose = ? AND code = ? AND used = 0 AND expires_at > NOW() ORDER BY id DESC LIMIT 1")) {
-            prepared.setString(1, phone);
-            prepared.setString(2, purpose);
-            prepared.setString(3, cleanCode);
-            try (ResultSet resultSet = prepared.executeQuery()) {
-                if (resultSet.next()) {
-                    codeId = resultSet.getLong("id");
-                }
-            }
-        }
-        if (codeId == null) {
-            throw new IllegalArgumentException("短信验证码错误或已过期");
-        }
-        executeUpdate(connection, "UPDATE sms_codes SET used = 1 WHERE id = ?", codeId);
-    }
-
     private long readGeneratedId(PreparedStatement prepared) throws SQLException {
         try (ResultSet keys = prepared.getGeneratedKeys()) {
             if (!keys.next()) {
@@ -1111,8 +1082,12 @@ public class JdbcBbsRepository {
         return new Comment(
                 resultSet.getLong("id"),
                 resultSet.getLong("post_id"),
+                resultSet.getLong("parent_comment_id"),
                 resultSet.getLong("author_id"),
                 resultSet.getString("author_username"),
+                resultSet.getString("parent_author_username"),
+                resultSet.getString("ip_address"),
+                resultSet.getString("region"),
                 resultSet.getString("content"),
                 resultSet.getInt("like_score"),
                 resultSet.getInt("dislike_score"),

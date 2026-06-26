@@ -39,7 +39,10 @@ create table if not exists posts (
 create table if not exists comments (
     id bigint primary key auto_increment,
     post_id bigint not null,
+    parent_comment_id bigint null,
     author_id bigint not null,
+    ip_address varchar(45) null,
+    region varchar(30) null,
     content text not null,
     deleted tinyint(1) not null default 0,
     like_score int not null default 0,
@@ -47,6 +50,7 @@ create table if not exists comments (
     created_at timestamp not null default current_timestamp,
     updated_at timestamp not null default current_timestamp on update current_timestamp,
     index idx_comments_post(post_id, created_at),
+    index idx_comments_parent(parent_comment_id),
     constraint fk_comments_post foreign key(post_id) references posts(id),
     constraint fk_comments_author foreign key(author_id) references users(id)
 ) engine=innodb default charset=utf8mb4;
@@ -119,17 +123,6 @@ create table if not exists notifications (
     index idx_notifications_user(recipient_id, read_flag, created_at),
     constraint fk_notifications_recipient foreign key(recipient_id) references users(id),
     constraint fk_notifications_actor foreign key(actor_id) references users(id)
-) engine=innodb default charset=utf8mb4;
-
-create table if not exists sms_codes (
-    id bigint primary key auto_increment,
-    phone varchar(20) not null,
-    purpose varchar(20) not null,
-    code varchar(8) not null,
-    used tinyint(1) not null default 0,
-    expires_at timestamp not null,
-    created_at timestamp not null default current_timestamp,
-    index idx_sms_lookup(phone, purpose, code, used, expires_at)
 ) engine=innodb default charset=utf8mb4;
 
 insert into users(username, password_hash, phone, role)
