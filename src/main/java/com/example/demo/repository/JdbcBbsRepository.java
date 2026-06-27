@@ -630,9 +630,9 @@ public class JdbcBbsRepository {
                 prepared.executeUpdate();
                 long commentId = readGeneratedId(prepared);
                 executeUpdate(connection, "UPDATE posts SET comment_count = comment_count + 1 WHERE id = ?", postId);
-                notifyPostOwner(connection, post, user, "COMMENT", user.getUsername() + " 评论了你的帖子", commentId);
-                if (parentComment != null && parentComment.getAuthorId() != user.getId()
-                        && parentComment.getAuthorId() != post.getAuthorId()) {
+                if (parentComment == null) {
+                    notifyPostOwner(connection, post, user, "COMMENT", user.getUsername() + " 评论了你的帖子", commentId);
+                } else if (parentComment.getAuthorId() != user.getId()) {
                     notifyCommentOwner(connection, parentComment, user, postId, commentId);
                 }
                 connection.commit();
@@ -1066,16 +1066,25 @@ public class JdbcBbsRepository {
     }
 
     private String mapRegion(ResultSet resultSet) throws SQLException {
-        String region = TextUtils.trim(resultSet.getString("region"));
+        return resolveStoredRegion(resultSet.getString("region"), resultSet.getString("ip_address"));
+    }
+
+    private String resolveStoredRegion(String region, String ipAddress) {
+        String cleanRegion = TextUtils.trim(region);
+        if (IpLocationUtil.LOCAL_REGION.equals(cleanRegion)) {
+            return cleanRegion;
+        }
+
         String province = ForumOptions.normalizeProvince(region);
         if (!province.isEmpty()) {
             return province;
         }
-        if (IpLocationUtil.LOCAL_REGION.equals(region) || IpLocationUtil.UNKNOWN_REGION.equals(region)) {
-            return region;
+
+        province = IpLocationUtil.resolveProvince(ipAddress);
+        if (!province.isEmpty() && !IpLocationUtil.UNKNOWN_REGION.equals(province)) {
+            return province;
         }
-        province = IpLocationUtil.resolveProvince(resultSet.getString("ip_address"));
-        return TextUtils.trim(province).isEmpty() ? IpLocationUtil.UNKNOWN_REGION : province;
+        return IpLocationUtil.UNKNOWN_REGION;
     }
 
     private Comment mapComment(ResultSet resultSet) throws SQLException {
@@ -1087,7 +1096,7 @@ public class JdbcBbsRepository {
                 resultSet.getString("author_username"),
                 resultSet.getString("parent_author_username"),
                 resultSet.getString("ip_address"),
-                resultSet.getString("region"),
+                resolveStoredRegion(resultSet.getString("region"), resultSet.getString("ip_address")),
                 resultSet.getString("content"),
                 resultSet.getInt("like_score"),
                 resultSet.getInt("dislike_score"),

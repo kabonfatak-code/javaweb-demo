@@ -18,9 +18,10 @@ public final class ForumOptions {
         if (value == null) {
             return "";
         }
-        String cleanValue = value.trim().replace("省", "").replace("市", "");
+        String rawValue = value.trim();
+        String cleanValue = rawValue.replace("省", "").replace("市", "");
         for (String province : PROVINCES) {
-            if (province.equals(cleanValue) || value.trim().startsWith(province)) {
+            if (province.equals(cleanValue) || rawValue.startsWith(province) || cleanValue.contains(province)) {
                 return province;
             }
         }
@@ -28,6 +29,9 @@ public final class ForumOptions {
     }
 
     private static String englishProvince(String value) {
+        if (value.endsWith(" province")) {
+            value = value.substring(0, value.length() - " province".length()).trim();
+        }
         switch (value.toLowerCase()) {
             case "beijing": return "北京";
             case "tianjin": return "天津";

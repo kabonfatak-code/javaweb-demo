@@ -33,7 +33,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>留言详情 - BBS 论坛</title>
-    <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/style.css?v=20260626-nested-replies">
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/style.css?v=20260627-reply-actions">
 </head>
 <body>
 <%@ include file="/WEB-INF/views/fragments/header.jspf" %>
@@ -71,9 +71,9 @@
             <div class="action-panel">
                 <form method="post" action="<%= ctx %>/post/action" class="ajax-action post-action-buttons">
                     <input type="hidden" name="id" value="<%= post.getId() %>">
-                    <button class="button" type="submit" name="action" value="like">点赞</button>
+                    <button class="button" type="submit" name="action" value="like">赞</button>
                     <button class="button" type="submit" name="action" value="dislike">踩</button>
-                    <button class="button" type="submit" name="action" value="favorite">收藏/取消</button>
+                    <button class="button" type="submit" name="action" value="favorite">收藏</button>
                 </form>
                 <% if (!loginUser.isAdmin()) { %>
                     <form method="post" action="<%= ctx %>/post/action" class="report-form ajax-action" data-disclosure-form autocomplete="off">
@@ -113,7 +113,6 @@
                     <div class="comment-meta">
                         <strong><%= TextUtils.escapeHtml(comment.getAuthorUsername()) %></strong>
                         <time><%= formatter.format(comment.getCreatedAt()) %></time>
-                        <span class="comment-ip">IP：<%= TextUtils.escapeHtml(TextUtils.trim(comment.getIpAddress()).isEmpty() ? "未知" : comment.getIpAddress()) %></span>
                         <span class="comment-region"><%= TextUtils.escapeHtml(TextUtils.trim(comment.getRegion()).isEmpty() ? "未知" : comment.getRegion()) %></span>
                         <span class="comment-stats" data-comment-stats data-comment-id="<%= comment.getId() %>">
                             赞 <span data-comment-stat="likeScore"><%= comment.getLikeScore() %></span> ·
@@ -191,7 +190,6 @@
                                             <span class="reply-tag">回复 @<%= TextUtils.escapeHtml(reply.getParentAuthorUsername()) %></span>
                                         <% } %>
                                         <time><%= formatter.format(reply.getCreatedAt()) %></time>
-                                        <span class="comment-ip">IP：<%= TextUtils.escapeHtml(TextUtils.trim(reply.getIpAddress()).isEmpty() ? "未知" : reply.getIpAddress()) %></span>
                                         <span class="comment-region"><%= TextUtils.escapeHtml(TextUtils.trim(reply.getRegion()).isEmpty() ? "未知" : reply.getRegion()) %></span>
                                         <span class="comment-stats" data-comment-stats data-comment-id="<%= reply.getId() %>">
                                             赞 <span data-comment-stat="likeScore"><%= reply.getLikeScore() %></span> ·
@@ -206,6 +204,19 @@
                                                 <input type="hidden" name="commentId" value="<%= reply.getId() %>">
                                                 <button class="button" type="submit" name="action" value="like">赞</button>
                                                 <button class="button" type="submit" name="action" value="dislike">踩</button>
+                                            </form>
+                                            <form method="post" action="<%= ctx %>/comment/action" class="comment-reply ajax-action" data-disclosure-form autocomplete="off">
+                                                <input type="hidden" name="action" value="add">
+                                                <input type="hidden" name="postId" value="<%= post.getId() %>">
+                                                <input type="hidden" name="parentCommentId" value="<%= reply.getId() %>">
+                                                <button class="button" type="button" data-disclosure-toggle>回复</button>
+                                                <div class="comment-reply-fields hidden" data-disclosure-fields>
+                                                    <textarea name="content" rows="2" maxlength="2000" placeholder="回复 @<%= TextUtils.escapeHtml(reply.getAuthorUsername()) %>" autocomplete="off" required></textarea>
+                                                    <div class="button-row">
+                                                        <button class="button" type="submit">提交回复</button>
+                                                        <button class="button" type="button" data-disclosure-cancel>取消</button>
+                                                    </div>
+                                                </div>
                                             </form>
                                             <% if (!loginUser.isAdmin()) { %>
                                                 <form method="post" action="<%= ctx %>/comment/action" class="report-form ajax-action" data-disclosure-form autocomplete="off">

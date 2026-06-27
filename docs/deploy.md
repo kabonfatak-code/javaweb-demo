@@ -86,7 +86,14 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header Host $host;
 ```
 
-公网 IP 地区解析默认超时较短；如服务器访问定位服务不稳定，可配置：
+项目已内置 `src/main/resources/ip2region/ip2region.xdb`，部署后的 WAR 会优先使用离线库解析省份，不依赖外部接口。
+如需在服务器上使用外部更新后的 xdb 文件，可配置：
+
+```text
+-Dbbs.ip.location.xdb.path=/opt/bbs/ip2region.xdb
+```
+
+在线 IP 接口仅作为离线库不可用时的兜底；如服务器访问定位服务不稳定，可配置：
 
 ```text
 -Dbbs.ip.location.timeout.ms=800

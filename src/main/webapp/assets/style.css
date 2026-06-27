@@ -643,10 +643,6 @@ textarea:focus {
     font-weight: 700;
 }
 
-.comment-ip {
-    color: var(--muted);
-}
-
 .comment-content {
     margin: 10px 0;
     overflow-wrap: anywhere;
@@ -708,6 +704,16 @@ textarea:focus {
     flex-direction: row;
     align-items: center;
     gap: 8px;
+}
+
+.compact-buttons .comment-reply,
+.compact-buttons .report-form {
+    margin-top: 0;
+}
+
+.compact-buttons .comment-reply.is-expanded {
+    flex-basis: 100%;
+    align-items: flex-start;
 }
 
 .compact-buttons .button,
