@@ -92,46 +92,47 @@
                 </thead>
                 <tbody>
                 <% for (User item : users) { %>
+                    <% String userFormId = "admin-user-form-" + item.getId(); %>
                     <tr>
-                        <form method="post" action="<%= ctx %>/admin/action" class="ajax-admin-action">
-                            <td><%= TextUtils.escapeHtml(item.getUsername()) %></td>
-                            <td><input type="text" name="phone" value="<%= TextUtils.escapeHtml(item.getPhone()) %>"></td>
-                            <td><%= TextUtils.escapeHtml(item.getRoleLabel()) %></td>
-                            <%
-                                String banState;
-                                if (!item.isBanned()) {
-                                    banState = "0:0";
-                                } else if (item.getBannedUntil() == null) {
-                                    banState = "1:0";
-                                } else {
-                                    long daysLeft = java.time.temporal.ChronoUnit.DAYS.between(
-                                        java.time.LocalDateTime.now(), item.getBannedUntil());
-                                    if (daysLeft <= 1) banState = "1:1";
-                                    else if (daysLeft <= 7) banState = "1:7";
-                                    else if (daysLeft <= 30) banState = "1:30";
-                                    else banState = "1:365";
-                                }
-                            %>
-                            <td>
-                                <select name="banAction" <%= item.getId() == loginUser.getId() ? "disabled" : "" %>>
-                                    <option value="0:0" <%= "0:0".equals(banState) ? "selected" : "" %>>正常</option>
-                                    <option value="1:1" <%= "1:1".equals(banState) ? "selected" : "" %>>封禁 1 天</option>
-                                    <option value="1:7" <%= "1:7".equals(banState) ? "selected" : "" %>>封禁 7 天</option>
-                                    <option value="1:30" <%= "1:30".equals(banState) ? "selected" : "" %>>封禁 30 天</option>
-                                    <option value="1:365" <%= "1:365".equals(banState) ? "selected" : "" %>>封禁 365 天</option>
-                                    <option value="1:0" <%= "1:0".equals(banState) ? "selected" : "" %>>永久封禁</option>
-                                </select>
-                                <% if (item.getId() == loginUser.getId()) { %>
-                                    <input type="hidden" name="banAction" value="0:0">
-                                <% } %>
-                                <input type="hidden" name="role" value="<%= item.getRole() %>">
-                            </td>
-                            <td>
+                        <td><%= TextUtils.escapeHtml(item.getUsername()) %></td>
+                        <td><input form="<%= userFormId %>" type="text" name="phone" value="<%= TextUtils.escapeHtml(item.getPhone()) %>"></td>
+                        <td><%= TextUtils.escapeHtml(item.getRoleLabel()) %></td>
+                        <%
+                            String banState;
+                            if (!item.isBanned()) {
+                                banState = "0:0";
+                            } else if (item.getBannedUntil() == null) {
+                                banState = "1:0";
+                            } else {
+                                long daysLeft = java.time.temporal.ChronoUnit.DAYS.between(
+                                    java.time.LocalDateTime.now(), item.getBannedUntil());
+                                if (daysLeft <= 1) banState = "1:1";
+                                else if (daysLeft <= 7) banState = "1:7";
+                                else if (daysLeft <= 30) banState = "1:30";
+                                else banState = "1:365";
+                            }
+                        %>
+                        <td>
+                            <select form="<%= userFormId %>" name="banAction" <%= item.getId() == loginUser.getId() ? "disabled" : "" %>>
+                                <option value="0:0" <%= "0:0".equals(banState) ? "selected" : "" %>>正常</option>
+                                <option value="1:1" <%= "1:1".equals(banState) ? "selected" : "" %>>封禁 1 天</option>
+                                <option value="1:7" <%= "1:7".equals(banState) ? "selected" : "" %>>封禁 7 天</option>
+                                <option value="1:30" <%= "1:30".equals(banState) ? "selected" : "" %>>封禁 30 天</option>
+                                <option value="1:365" <%= "1:365".equals(banState) ? "selected" : "" %>>封禁 365 天</option>
+                                <option value="1:0" <%= "1:0".equals(banState) ? "selected" : "" %>>永久封禁</option>
+                            </select>
+                            <% if (item.getId() == loginUser.getId()) { %>
+                                <input form="<%= userFormId %>" type="hidden" name="banAction" value="0:0">
+                            <% } %>
+                            <input form="<%= userFormId %>" type="hidden" name="role" value="<%= item.getRole() %>">
+                        </td>
+                        <td>
+                            <form id="<%= userFormId %>" method="post" action="<%= ctx %>/admin/action" class="ajax-admin-action">
                                 <input type="hidden" name="action" value="user">
                                 <input type="hidden" name="userId" value="<%= item.getId() %>">
-                                <button class="button" type="submit">保存</button>
-                            </td>
-                        </form>
+                            </form>
+                            <button form="<%= userFormId %>" class="button" type="submit">保存</button>
+                        </td>
                     </tr>
                 <% } %>
                 </tbody>
