@@ -2,6 +2,11 @@
 <%@ page import="java.time.format.DateTimeFormatter,java.util.List,com.example.demo.model.Notification,com.example.demo.util.TextUtils" %>
 <%
     List<Notification> notifications = (List<Notification>) request.getAttribute("notifications");
+    Integer currentPageValue = (Integer) request.getAttribute("currentPage");
+    Integer totalPagesValue = (Integer) request.getAttribute("totalPages");
+    int currentPage = currentPageValue == null ? 1 : currentPageValue;
+    int totalPages = totalPagesValue == null ? 1 : totalPagesValue;
+    String pageUrlPrefix = request.getContextPath() + "/notifications?page=";
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 %>
 <!DOCTYPE html>
@@ -32,6 +37,27 @@
                     </div>
                     <p class="post-meta">点击查看对应留言或评论</p>
                 </a>
+            <% } %>
+            <% if (totalPages > 1) { %>
+                <nav class="pagination" aria-label="通知分页">
+                    <% if (currentPage > 1) { %>
+                        <a class="page-link" href="<%= pageUrlPrefix %><%= currentPage - 1 %>">上一页</a>
+                    <% } else { %>
+                        <span class="page-link disabled">上一页</span>
+                    <% } %>
+                    <% for (int i = 1; i <= totalPages; i++) { %>
+                        <% if (i == currentPage) { %>
+                            <span class="page-link active"><%= i %></span>
+                        <% } else { %>
+                            <a class="page-link" href="<%= pageUrlPrefix %><%= i %>"><%= i %></a>
+                        <% } %>
+                    <% } %>
+                    <% if (currentPage < totalPages) { %>
+                        <a class="page-link" href="<%= pageUrlPrefix %><%= currentPage + 1 %>">下一页</a>
+                    <% } else { %>
+                        <span class="page-link disabled">下一页</span>
+                    <% } %>
+                </nav>
             <% } %>
         </section>
     <% } %>

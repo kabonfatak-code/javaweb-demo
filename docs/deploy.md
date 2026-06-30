@@ -22,7 +22,7 @@
 mysql -uroot -p < database/schema.sql
 ```
 
-应用启动时也会自动创建缺失的数据表，并写入默认管理员：
+数据库结构以 `database/schema.sql` 为准；应用启动时不会自动创建或升级数据表。脚本会写入默认管理员：
 
 ```text
 admin / admin123

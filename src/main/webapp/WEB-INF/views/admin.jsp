@@ -3,6 +3,16 @@
 <%
     List<User> users = (List<User>) request.getAttribute("users");
     List<Report> reports = (List<Report>) request.getAttribute("reports");
+    Integer reportCurrentPageValue = (Integer) request.getAttribute("reportCurrentPage");
+    Integer reportTotalPagesValue = (Integer) request.getAttribute("reportTotalPages");
+    Integer userCurrentPageValue = (Integer) request.getAttribute("userCurrentPage");
+    Integer userTotalPagesValue = (Integer) request.getAttribute("userTotalPages");
+    int reportCurrentPage = reportCurrentPageValue == null ? 1 : reportCurrentPageValue;
+    int reportTotalPages = reportTotalPagesValue == null ? 1 : reportTotalPagesValue;
+    int userCurrentPage = userCurrentPageValue == null ? 1 : userCurrentPageValue;
+    int userTotalPages = userTotalPagesValue == null ? 1 : userTotalPagesValue;
+    String reportPageUrlPrefix = request.getContextPath() + "/admin?userPage=" + userCurrentPage + "&reportPage=";
+    String userPageUrlPrefix = request.getContextPath() + "/admin?reportPage=" + reportCurrentPage + "&userPage=";
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 %>
 <!DOCTYPE html>
@@ -63,6 +73,7 @@
                     <% } %>
                 </article>
             <% } %>
+            <%= renderPagination(reportPageUrlPrefix, reportCurrentPage, reportTotalPages, "举报分页") %>
         <% } %>
     </section>
 
@@ -126,6 +137,34 @@
                 </tbody>
             </table>
         </div>
+        <%= renderPagination(userPageUrlPrefix, userCurrentPage, userTotalPages, "用户分页") %>
     </section>
 </main></body>
 </html>
+<%!
+    private String renderPagination(String pageUrlPrefix, int currentPage, int totalPages, String label) {
+        if (totalPages <= 1) {
+            return "";
+        }
+        StringBuilder html = new StringBuilder("<nav class=\"pagination\" aria-label=\"").append(label).append("\">");
+        if (currentPage > 1) {
+            html.append("<a class=\"page-link\" href=\"").append(pageUrlPrefix).append(currentPage - 1).append("\">上一页</a>");
+        } else {
+            html.append("<span class=\"page-link disabled\">上一页</span>");
+        }
+        for (int i = 1; i <= totalPages; i++) {
+            if (i == currentPage) {
+                html.append("<span class=\"page-link active\">").append(i).append("</span>");
+            } else {
+                html.append("<a class=\"page-link\" href=\"").append(pageUrlPrefix).append(i).append("\">").append(i).append("</a>");
+            }
+        }
+        if (currentPage < totalPages) {
+            html.append("<a class=\"page-link\" href=\"").append(pageUrlPrefix).append(currentPage + 1).append("\">下一页</a>");
+        } else {
+            html.append("<span class=\"page-link disabled\">下一页</span>");
+        }
+        html.append("</nav>");
+        return html.toString();
+    }
+%>

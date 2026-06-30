@@ -23,183 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class JdbcBbsRepository {
-    public JdbcBbsRepository() {
-        try {
-            initializeSchema();
-        } catch (SQLException e) {
-            throw new IllegalStateException("无法连接或初始化 MySQL BBS 数据库，请确认 BBS 数据库已创建且账号密码正确", e);
-        }
-    }
-
-    private void initializeSchema() throws SQLException {
-        try (Connection connection = DbUtil.getConnection(); Statement statement = connection.createStatement()) {
-            statement.execute("CREATE TABLE IF NOT EXISTS users ("
-                    + "id BIGINT PRIMARY KEY AUTO_INCREMENT,"
-                    + "username VARCHAR(30) NOT NULL UNIQUE,"
-                    + "password_hash CHAR(64) NOT NULL,"
-                    + "phone VARCHAR(20) NOT NULL UNIQUE,"
-                    + "province VARCHAR(20) NULL,"
-                    + "role VARCHAR(20) NOT NULL DEFAULT 'NEW_USER',"
-                    + "banned TINYINT(1) NOT NULL DEFAULT 0,"
-                    + "banned_until TIMESTAMP NULL,"
-                    + "history_enabled TINYINT(1) NOT NULL DEFAULT 1,"
-                    + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "register_time TIMESTAMP NULL"
-                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-            statement.execute("CREATE TABLE IF NOT EXISTS posts ("
-                    + "id BIGINT PRIMARY KEY AUTO_INCREMENT,"
-                    + "title VARCHAR(120) NOT NULL,"
-                    + "topic VARCHAR(30) NOT NULL,"
-                    + "region VARCHAR(30) NOT NULL,"
-                    + "content TEXT NOT NULL,"
-                    + "author_id BIGINT NOT NULL,"
-                    + "ip_address VARCHAR(45) NULL,"
-                    + "pinned TINYINT(1) NOT NULL DEFAULT 0,"
-                    + "deleted TINYINT(1) NOT NULL DEFAULT 0,"
-                    + "like_score INT NOT NULL DEFAULT 0,"
-                    + "dislike_score INT NOT NULL DEFAULT 0,"
-                    + "favorite_count INT NOT NULL DEFAULT 0,"
-                    + "comment_count INT NOT NULL DEFAULT 0,"
-                    + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                    + "INDEX idx_posts_search(topic, region, created_at),"
-                    + "INDEX idx_posts_rank(pinned, like_score, favorite_count),"
-                    + "CONSTRAINT fk_posts_author FOREIGN KEY(author_id) REFERENCES users(id)"
-                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-            statement.execute("CREATE TABLE IF NOT EXISTS comments ("
-                    + "id BIGINT PRIMARY KEY AUTO_INCREMENT,"
-                    + "post_id BIGINT NOT NULL,"
-                    + "parent_comment_id BIGINT NULL,"
-                    + "author_id BIGINT NOT NULL,"
-                    + "ip_address VARCHAR(45) NULL,"
-                    + "region VARCHAR(30) NULL,"
-                    + "content TEXT NOT NULL,"
-                    + "deleted TINYINT(1) NOT NULL DEFAULT 0,"
-                    + "like_score INT NOT NULL DEFAULT 0,"
-                    + "dislike_score INT NOT NULL DEFAULT 0,"
-                    + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                    + "INDEX idx_comments_post(post_id, created_at),"
-                    + "INDEX idx_comments_parent(parent_comment_id),"
-                    + "CONSTRAINT fk_comments_post FOREIGN KEY(post_id) REFERENCES posts(id),"
-                    + "CONSTRAINT fk_comments_author FOREIGN KEY(author_id) REFERENCES users(id)"
-                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-            statement.execute("CREATE TABLE IF NOT EXISTS post_votes ("
-                    + "user_id BIGINT NOT NULL,"
-                    + "post_id BIGINT NOT NULL,"
-                    + "value TINYINT NOT NULL,"
-                    + "weight INT NOT NULL,"
-                    + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "PRIMARY KEY(user_id, post_id),"
-                    + "CONSTRAINT fk_post_votes_user FOREIGN KEY(user_id) REFERENCES users(id),"
-                    + "CONSTRAINT fk_post_votes_post FOREIGN KEY(post_id) REFERENCES posts(id)"
-                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-            statement.execute("CREATE TABLE IF NOT EXISTS comment_votes ("
-                    + "user_id BIGINT NOT NULL,"
-                    + "comment_id BIGINT NOT NULL,"
-                    + "value TINYINT NOT NULL,"
-                    + "weight INT NOT NULL,"
-                    + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "PRIMARY KEY(user_id, comment_id),"
-                    + "CONSTRAINT fk_comment_votes_user FOREIGN KEY(user_id) REFERENCES users(id),"
-                    + "CONSTRAINT fk_comment_votes_comment FOREIGN KEY(comment_id) REFERENCES comments(id)"
-                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-            statement.execute("CREATE TABLE IF NOT EXISTS favorites ("
-                    + "user_id BIGINT NOT NULL,"
-                    + "post_id BIGINT NOT NULL,"
-                    + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "PRIMARY KEY(user_id, post_id),"
-                    + "CONSTRAINT fk_favorites_user FOREIGN KEY(user_id) REFERENCES users(id),"
-                    + "CONSTRAINT fk_favorites_post FOREIGN KEY(post_id) REFERENCES posts(id)"
-                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-            statement.execute("CREATE TABLE IF NOT EXISTS browse_history ("
-                    + "user_id BIGINT NOT NULL,"
-                    + "post_id BIGINT NOT NULL,"
-                    + "viewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "PRIMARY KEY(user_id, post_id),"
-                    + "CONSTRAINT fk_history_user FOREIGN KEY(user_id) REFERENCES users(id),"
-                    + "CONSTRAINT fk_history_post FOREIGN KEY(post_id) REFERENCES posts(id)"
-                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-            statement.execute("CREATE TABLE IF NOT EXISTS reports ("
-                    + "id BIGINT PRIMARY KEY AUTO_INCREMENT,"
-                    + "reporter_id BIGINT NOT NULL,"
-                    + "post_id BIGINT NULL,"
-                    + "comment_id BIGINT NULL,"
-                    + "reason VARCHAR(255) NOT NULL,"
-                    + "weight INT NOT NULL,"
-                    + "handled TINYINT(1) NOT NULL DEFAULT 0,"
-                    + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "INDEX idx_reports_handled(handled, created_at),"
-                    + "INDEX idx_reports_post(post_id, reporter_id),"
-                    + "INDEX idx_reports_comment(comment_id, reporter_id),"
-                    + "CONSTRAINT fk_reports_user FOREIGN KEY(reporter_id) REFERENCES users(id),"
-                    + "CONSTRAINT fk_reports_post FOREIGN KEY(post_id) REFERENCES posts(id),"
-                    + "CONSTRAINT fk_reports_comment FOREIGN KEY(comment_id) REFERENCES comments(id)"
-                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-            statement.execute("CREATE TABLE IF NOT EXISTS notifications ("
-                    + "id BIGINT PRIMARY KEY AUTO_INCREMENT,"
-                    + "recipient_id BIGINT NOT NULL,"
-                    + "actor_id BIGINT NOT NULL,"
-                    + "post_id BIGINT NULL,"
-                    + "comment_id BIGINT NULL,"
-                    + "type VARCHAR(30) NOT NULL,"
-                    + "message VARCHAR(255) NOT NULL,"
-                    + "read_flag TINYINT(1) NOT NULL DEFAULT 0,"
-                    + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "INDEX idx_notifications_user(recipient_id, read_flag, created_at),"
-                    + "CONSTRAINT fk_notifications_recipient FOREIGN KEY(recipient_id) REFERENCES users(id),"
-                    + "CONSTRAINT fk_notifications_actor FOREIGN KEY(actor_id) REFERENCES users(id)"
-                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-            ensureColumn(connection, "users", "province", "ALTER TABLE users ADD COLUMN province VARCHAR(20) NULL AFTER phone");
-            ensureColumn(connection, "users", "banned_until", "ALTER TABLE users ADD COLUMN banned_until TIMESTAMP NULL AFTER banned");
-            ensureColumn(connection, "users", "register_time", "ALTER TABLE users ADD COLUMN register_time TIMESTAMP NULL AFTER created_at");
-            ensureColumn(connection, "posts", "ip_address", "ALTER TABLE posts ADD COLUMN ip_address VARCHAR(45) NULL AFTER author_id");
-            ensureColumn(connection, "comments", "parent_comment_id", "ALTER TABLE comments ADD COLUMN parent_comment_id BIGINT NULL AFTER post_id");
-            ensureColumn(connection, "comments", "ip_address", "ALTER TABLE comments ADD COLUMN ip_address VARCHAR(45) NULL AFTER author_id");
-            ensureColumn(connection, "comments", "region", "ALTER TABLE comments ADD COLUMN region VARCHAR(30) NULL AFTER ip_address");
-            executeUpdate(connection, "UPDATE users SET register_time = created_at WHERE register_time IS NULL");
-            executeUpdate(connection, "UPDATE posts SET region = ? WHERE region IS NULL OR region = '' OR region = 'ip' OR region = '地区' OR region = '全国'",
-                    IpLocationUtil.UNKNOWN_REGION);
-
-            try (PreparedStatement prepared = connection.prepareStatement(
-                    "INSERT INTO users(username, password_hash, phone, province, role, banned, banned_until, history_enabled, created_at, register_time) "
-                            + "SELECT ?, ?, ?, ?, ?, 0, NULL, 1, NOW(), NOW() FROM dual WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = ?)")) {
-                prepared.setString(1, "admin");
-                prepared.setString(2, PasswordUtils.sha256("admin123"));
-                prepared.setString(3, "10000");
-                prepared.setString(4, null);
-                prepared.setString(5, User.ROLE_ADMIN);
-                prepared.setString(6, "admin");
-                prepared.executeUpdate();
-            }
-        }
-    }
-
-    private void ensureColumn(Connection connection, String tableName, String columnName, String alterSql) throws SQLException {
-        try (PreparedStatement prepared = connection.prepareStatement(
-                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?")) {
-            prepared.setString(1, tableName);
-            prepared.setString(2, columnName);
-            try (ResultSet resultSet = prepared.executeQuery()) {
-                resultSet.next();
-                if (resultSet.getInt(1) == 0) {
-                    try (Statement statement = connection.createStatement()) {
-                        statement.execute(alterSql);
-                    }
-                }
-            }
-        }
-    }
-
     public User register(String username, String password, String phone) throws SQLException {
         String normalizedUsername = TextUtils.trim(username);
         String normalizedPhone = normalizePhone(phone);
@@ -282,15 +105,26 @@ public class JdbcBbsRepository {
     }
 
     public List<User> findUsers() throws SQLException {
+        return findUsers(1, 100);
+    }
+
+    public List<User> findUsers(int page, int pageSize) throws SQLException {
         List<User> users = new ArrayList<>();
         try (Connection connection = DbUtil.getConnection();
-             PreparedStatement prepared = connection.prepareStatement("SELECT * FROM users ORDER BY role = 'ADMIN' DESC, id DESC");
-             ResultSet resultSet = prepared.executeQuery()) {
-            while (resultSet.next()) {
-                users.add(mapUser(resultSet));
+             PreparedStatement prepared = connection.prepareStatement("SELECT * FROM users ORDER BY role = 'ADMIN' DESC, id DESC LIMIT ? OFFSET ?")) {
+            prepared.setInt(1, Math.max(1, pageSize));
+            prepared.setInt(2, Math.max(0, (Math.max(page, 1) - 1) * Math.max(1, pageSize)));
+            try (ResultSet resultSet = prepared.executeQuery()) {
+                while (resultSet.next()) {
+                    users.add(mapUser(resultSet));
+                }
             }
         }
         return users;
+    }
+
+    public int countUsers() throws SQLException {
+        return countRows("SELECT COUNT(*) FROM users");
     }
 
     public void setHistoryEnabled(long userId, boolean enabled) throws SQLException {
@@ -508,21 +342,48 @@ public class JdbcBbsRepository {
     }
 
     public List<Post> findHistory(long userId) throws SQLException {
+        return findHistory(userId, 1, 50);
+    }
+
+    public List<Post> findHistory(long userId, int page, int pageSize) throws SQLException {
         return findPostList("SELECT p.*, u.username AS author_username, "
                 + "CASE WHEN u.role = 'ADMIN' THEN 'ADMIN' WHEN u.register_time <= DATE_SUB(NOW(), INTERVAL 6 MONTH) THEN 'OLD_USER' ELSE 'NEW_USER' END AS author_role "
                 + "FROM browse_history h JOIN posts p ON h.post_id = p.id JOIN users u ON p.author_id = u.id "
-                + "WHERE h.user_id = ? AND p.deleted = 0 ORDER BY h.viewed_at DESC LIMIT 50", userId);
+                + "WHERE h.user_id = ? AND p.deleted = 0 ORDER BY h.viewed_at DESC LIMIT ? OFFSET ?",
+                userId, Math.max(1, pageSize), Math.max(0, (Math.max(page, 1) - 1) * Math.max(1, pageSize)));
+    }
+
+    public int countHistory(long userId) throws SQLException {
+        return countRows("SELECT COUNT(*) FROM browse_history h JOIN posts p ON h.post_id = p.id WHERE h.user_id = ? AND p.deleted = 0", userId);
     }
 
     public List<Post> findFavorites(long userId) throws SQLException {
+        return findFavorites(userId, 1, 50);
+    }
+
+    public List<Post> findFavorites(long userId, int page, int pageSize) throws SQLException {
         return findPostList("SELECT p.*, u.username AS author_username, "
                 + "CASE WHEN u.role = 'ADMIN' THEN 'ADMIN' WHEN u.register_time <= DATE_SUB(NOW(), INTERVAL 6 MONTH) THEN 'OLD_USER' ELSE 'NEW_USER' END AS author_role "
                 + "FROM favorites f JOIN posts p ON f.post_id = p.id JOIN users u ON p.author_id = u.id "
-                + "WHERE f.user_id = ? AND p.deleted = 0 ORDER BY f.created_at DESC LIMIT 50", userId);
+                + "WHERE f.user_id = ? AND p.deleted = 0 ORDER BY f.created_at DESC LIMIT ? OFFSET ?",
+                userId, Math.max(1, pageSize), Math.max(0, (Math.max(page, 1) - 1) * Math.max(1, pageSize)));
+    }
+
+    public int countFavorites(long userId) throws SQLException {
+        return countRows("SELECT COUNT(*) FROM favorites f JOIN posts p ON f.post_id = p.id WHERE f.user_id = ? AND p.deleted = 0", userId);
     }
 
     public List<Post> findMyPosts(long userId) throws SQLException {
-        return findPostList(basePostSql() + " WHERE p.author_id = ? AND p.deleted = 0 ORDER BY p.created_at DESC", userId);
+        return findMyPosts(userId, 1, 50);
+    }
+
+    public List<Post> findMyPosts(long userId, int page, int pageSize) throws SQLException {
+        return findPostList(basePostSql() + " WHERE p.author_id = ? AND p.deleted = 0 ORDER BY p.created_at DESC LIMIT ? OFFSET ?",
+                userId, Math.max(1, pageSize), Math.max(0, (Math.max(page, 1) - 1) * Math.max(1, pageSize)));
+    }
+
+    public int countMyPosts(long userId) throws SQLException {
+        return countRows("SELECT COUNT(*) FROM posts p WHERE p.author_id = ? AND p.deleted = 0", userId);
     }
 
     public void votePost(User user, long postId, int value) throws SQLException {
@@ -742,13 +603,19 @@ public class JdbcBbsRepository {
     }
 
     public List<Notification> findNotifications(long userId) throws SQLException {
+        return findNotifications(userId, 1, 100);
+    }
+
+    public List<Notification> findNotifications(long userId, int page, int pageSize) throws SQLException {
         List<Notification> notifications = new ArrayList<>();
         String sql = "SELECT n.*, a.username AS actor_username, p.title AS post_title "
                 + "FROM notifications n JOIN users a ON n.actor_id = a.id LEFT JOIN posts p ON n.post_id = p.id "
-                + "WHERE n.recipient_id = ? ORDER BY n.created_at DESC LIMIT 100";
+                + "WHERE n.recipient_id = ? ORDER BY n.created_at DESC LIMIT ? OFFSET ?";
         try (Connection connection = DbUtil.getConnection();
              PreparedStatement prepared = connection.prepareStatement(sql)) {
             prepared.setLong(1, userId);
+            prepared.setInt(2, Math.max(1, pageSize));
+            prepared.setInt(3, Math.max(0, (Math.max(page, 1) - 1) * Math.max(1, pageSize)));
             try (ResultSet resultSet = prepared.executeQuery()) {
                 while (resultSet.next()) {
                     notifications.add(new Notification(
@@ -769,6 +636,17 @@ public class JdbcBbsRepository {
         return notifications;
     }
 
+    public int countNotifications(long userId) throws SQLException {
+        try (Connection connection = DbUtil.getConnection();
+             PreparedStatement prepared = connection.prepareStatement("SELECT COUNT(*) FROM notifications WHERE recipient_id = ?")) {
+            prepared.setLong(1, userId);
+            try (ResultSet resultSet = prepared.executeQuery()) {
+                resultSet.next();
+                return resultSet.getInt(1);
+            }
+        }
+    }
+
     public int countUnreadNotifications(long userId) throws SQLException {
         try (Connection connection = DbUtil.getConnection();
              PreparedStatement prepared = connection.prepareStatement("SELECT COUNT(*) FROM notifications WHERE recipient_id = ? AND read_flag = 0")) {
@@ -781,9 +659,52 @@ public class JdbcBbsRepository {
     }
 
     public List<Report> findReports() throws SQLException {
+        return findReports(1, 100);
+    }
+
+    public List<Report> findReports(int page, int pageSize) throws SQLException {
         List<Report> reports = new ArrayList<>();
-        String sql = "SELECT * FROM ("
-                + "SELECT MIN(r.id) AS id, r.post_id AS post_id, 0 AS comment_id, p.author_id AS target_user_id, "
+        String sql = "SELECT * FROM (" + groupedReportsSql() + ") grouped_reports "
+                + "ORDER BY handled ASC, created_at DESC LIMIT ? OFFSET ?";
+        try (Connection connection = DbUtil.getConnection();
+             PreparedStatement prepared = connection.prepareStatement(sql)) {
+            prepared.setInt(1, Math.max(1, pageSize));
+            prepared.setInt(2, Math.max(0, (Math.max(page, 1) - 1) * Math.max(1, pageSize)));
+            try (ResultSet resultSet = prepared.executeQuery()) {
+                while (resultSet.next()) {
+                    reports.add(new Report(
+                            resultSet.getLong("id"),
+                            resultSet.getLong("post_id"),
+                            resultSet.getLong("comment_id"),
+                            resultSet.getLong("target_user_id"),
+                            resultSet.getString("post_title"),
+                            resultSet.getString("target_type"),
+                            resultSet.getString("target_username"),
+                            resultSet.getString("reporter_username"),
+                            resultSet.getString("reason"),
+                            resultSet.getInt("report_count"),
+                            resultSet.getInt("report_count"),
+                            resultSet.getBoolean("handled"),
+                            toLocalDateTime(resultSet.getTimestamp("created_at"))
+                    ));
+                }
+            }
+        }
+        return reports;
+    }
+
+    public int countReports() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM (" + groupedReportsSql() + ") grouped_reports";
+        try (Connection connection = DbUtil.getConnection();
+             PreparedStatement prepared = connection.prepareStatement(sql);
+             ResultSet resultSet = prepared.executeQuery()) {
+            resultSet.next();
+            return resultSet.getInt(1);
+        }
+    }
+
+    private String groupedReportsSql() {
+        return "SELECT MIN(r.id) AS id, r.post_id AS post_id, 0 AS comment_id, p.author_id AS target_user_id, "
                 + "p.title AS post_title, 'post' AS target_type, target_user.username AS target_username, "
                 + "GROUP_CONCAT(DISTINCT reporter.username ORDER BY reporter.username SEPARATOR '、') AS reporter_username, "
                 + "GROUP_CONCAT(DISTINCT r.reason ORDER BY r.created_at SEPARATOR '；') AS reason, "
@@ -806,30 +727,7 @@ public class JdbcBbsRepository {
                 + "JOIN users target_user ON c.author_id = target_user.id "
                 + "JOIN users reporter ON r.reporter_id = reporter.id "
                 + "WHERE r.comment_id IS NOT NULL "
-                + "GROUP BY r.comment_id, c.post_id, c.author_id, p.title, target_user.username"
-                + ") grouped_reports ORDER BY handled ASC, created_at DESC LIMIT 100";
-        try (Connection connection = DbUtil.getConnection();
-             PreparedStatement prepared = connection.prepareStatement(sql);
-             ResultSet resultSet = prepared.executeQuery()) {
-            while (resultSet.next()) {
-                reports.add(new Report(
-                        resultSet.getLong("id"),
-                        resultSet.getLong("post_id"),
-                        resultSet.getLong("comment_id"),
-                        resultSet.getLong("target_user_id"),
-                        resultSet.getString("post_title"),
-                        resultSet.getString("target_type"),
-                        resultSet.getString("target_username"),
-                        resultSet.getString("reporter_username"),
-                        resultSet.getString("reason"),
-                        resultSet.getInt("report_count"),
-                        resultSet.getInt("report_count"),
-                        resultSet.getBoolean("handled"),
-                        toLocalDateTime(resultSet.getTimestamp("created_at"))
-                ));
-            }
-        }
-        return reports;
+                + "GROUP BY r.comment_id, c.post_id, c.author_id, p.title, target_user.username";
     }
 
     public void markReportHandled(long reportId) throws SQLException {
@@ -936,11 +834,11 @@ public class JdbcBbsRepository {
                 parentComment.getAuthorId(), actor.getId(), postId, commentId, "REPLY", actor.getUsername() + " 回复了你的评论");
     }
 
-    private List<Post> findPostList(String sql, long userId) throws SQLException {
+    private List<Post> findPostList(String sql, Object... params) throws SQLException {
         List<Post> posts = new ArrayList<>();
         try (Connection connection = DbUtil.getConnection();
              PreparedStatement prepared = connection.prepareStatement(sql)) {
-            prepared.setLong(1, userId);
+            fillParams(prepared, asList(params));
             try (ResultSet resultSet = prepared.executeQuery()) {
                 while (resultSet.next()) {
                     posts.add(mapPost(resultSet));
@@ -948,6 +846,17 @@ public class JdbcBbsRepository {
             }
         }
         return posts;
+    }
+
+    private int countRows(String sql, Object... params) throws SQLException {
+        try (Connection connection = DbUtil.getConnection();
+             PreparedStatement prepared = connection.prepareStatement(sql)) {
+            fillParams(prepared, asList(params));
+            try (ResultSet resultSet = prepared.executeQuery()) {
+                resultSet.next();
+                return resultSet.getInt(1);
+            }
+        }
     }
 
     private String basePostSql() {

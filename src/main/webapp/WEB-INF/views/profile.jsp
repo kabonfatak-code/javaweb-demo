@@ -9,6 +9,11 @@
     List<Post> history = (List<Post>) request.getAttribute("history");
     List<Post> favorites = (List<Post>) request.getAttribute("favorites");
     List<Post> myPosts = (List<Post>) request.getAttribute("myPosts");
+    Integer currentPageValue = (Integer) request.getAttribute("currentPage");
+    Integer totalPagesValue = (Integer) request.getAttribute("totalPages");
+    int currentPage = currentPageValue == null ? 1 : currentPageValue;
+    int totalPages = totalPagesValue == null ? 1 : totalPagesValue;
+    String pageUrlPrefix = request.getContextPath() + "/profile?tab=" + tab + "&page=";
     String error = (String) request.getAttribute("error");
     String editUsername = (String) request.getAttribute("editUsername");
     String editPhone = (String) request.getAttribute("editPhone");
@@ -78,8 +83,10 @@
             </section>
         <% } else if ("history".equals(tab)) { %>
             <%= renderPosts(history, ctx, formatter) %>
+            <%= renderPagination(pageUrlPrefix, currentPage, totalPages) %>
         <% } else if ("favorites".equals(tab)) { %>
             <%= renderPosts(favorites, ctx, formatter) %>
+            <%= renderPagination(pageUrlPrefix, currentPage, totalPages) %>
         <% } else { %>
             <% if (myPosts == null || myPosts.isEmpty()) { %>
                 <section class="empty-state">你还没有发表留言</section>
@@ -104,6 +111,7 @@
                         </article>
                     <% } %>
                 </section>
+                <%= renderPagination(pageUrlPrefix, currentPage, totalPages) %>
             <% } %>
         <% } %>
     </section>
@@ -139,5 +147,31 @@
     private String excerpt(String content) {
         String text = content == null ? "" : content;
         return TextUtils.escapeHtml(text.length() > 120 ? text.substring(0, 120) + "..." : text);
+    }
+
+    private String renderPagination(String pageUrlPrefix, int currentPage, int totalPages) {
+        if (totalPages <= 1) {
+            return "";
+        }
+        StringBuilder html = new StringBuilder("<nav class=\"pagination\" aria-label=\"分页\">");
+        if (currentPage > 1) {
+            html.append("<a class=\"page-link\" href=\"").append(pageUrlPrefix).append(currentPage - 1).append("\">上一页</a>");
+        } else {
+            html.append("<span class=\"page-link disabled\">上一页</span>");
+        }
+        for (int i = 1; i <= totalPages; i++) {
+            if (i == currentPage) {
+                html.append("<span class=\"page-link active\">").append(i).append("</span>");
+            } else {
+                html.append("<a class=\"page-link\" href=\"").append(pageUrlPrefix).append(i).append("\">").append(i).append("</a>");
+            }
+        }
+        if (currentPage < totalPages) {
+            html.append("<a class=\"page-link\" href=\"").append(pageUrlPrefix).append(currentPage + 1).append("\">下一页</a>");
+        } else {
+            html.append("<span class=\"page-link disabled\">下一页</span>");
+        }
+        html.append("</nav>");
+        return html.toString();
     }
 %>

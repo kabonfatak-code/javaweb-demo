@@ -16,6 +16,8 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @WebServlet("/profile")
 public class ProfileServlet extends HttpServlet {
+    private static final int PAGE_SIZE = 8;
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         User user = WebUtil.getLoginUser(request);
@@ -78,10 +80,39 @@ public class ProfileServlet extends HttpServlet {
 
     private void forwardProfile(HttpServletRequest request, HttpServletResponse response, BbsRepository repository, User user, String tab)
             throws ServletException, IOException, SQLException {
-        request.setAttribute("tab", tab);
-        request.setAttribute("history", repository.findHistory(user.getId()));
-        request.setAttribute("favorites", repository.findFavorites(user.getId()));
-        request.setAttribute("myPosts", repository.findMyPosts(user.getId()));
+        String activeTab = normalizeTab(tab);
+        int totalCount = countTabItems(repository, user.getId(), activeTab);
+        int totalPages = Math.max(1, (totalCount + PAGE_SIZE - 1) / PAGE_SIZE);
+        int page = Math.min(Math.max(WebUtil.parseInt(request.getParameter("page"), 1), 1), totalPages);
+
+        request.setAttribute("tab", activeTab);
+        request.setAttribute("history", "history".equals(activeTab) ? repository.findHistory(user.getId(), page, PAGE_SIZE) : null);
+        request.setAttribute("favorites", "favorites".equals(activeTab) ? repository.findFavorites(user.getId(), page, PAGE_SIZE) : null);
+        request.setAttribute("myPosts", "posts".equals(activeTab) ? repository.findMyPosts(user.getId(), page, PAGE_SIZE) : null);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("totalCount", totalCount);
         request.getRequestDispatcher("/WEB-INF/views/profile.jsp").forward(request, response);
+    }
+
+    private String normalizeTab(String tab) {
+        String cleanTab = TextUtils.trim(tab);
+        if ("edit".equals(cleanTab) || "history".equals(cleanTab) || "favorites".equals(cleanTab) || "posts".equals(cleanTab)) {
+            return cleanTab;
+        }
+        return "account";
+    }
+
+    private int countTabItems(BbsRepository repository, long userId, String tab) throws SQLException {
+        if ("history".equals(tab)) {
+            return repository.countHistory(userId);
+        }
+        if ("favorites".equals(tab)) {
+            return repository.countFavorites(userId);
+        }
+        if ("posts".equals(tab)) {
+            return repository.countMyPosts(userId);
+        }
+        return 0;
     }
 }
